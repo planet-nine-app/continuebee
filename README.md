@@ -140,8 +140,9 @@ One of the biggest benefits of Sessionless is that it doesn't need to store any 
 This means all of the data Continue Bee cares about can all be saved in a single table/collection/whatever-other-construct-some-database-may-have.
 And that table looks like:
 
-----------------------
-| uuid | pubKey | hash
+| uuid  | pubKey | hash
+:-------:--------:-----
+ string | string | string
 
 uuid, and pubKey should have unique constraints (Sessionless generated keys and uuids should not collide, but since this is a public API people may just reuse keys and uuids).
 
