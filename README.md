@@ -141,7 +141,7 @@ This means all of the data Continue Bee cares about can all be saved in a single
 And that table looks like:
 
 | uuid  | pubKey | hash
-:-------:--------:-----
+:-------|:-------|:-----
  string | string | string
 
 uuid, and pubKey should have unique constraints (Sessionless generated keys and uuids should not collide, but since this is a public API people may just reuse keys and uuids).
