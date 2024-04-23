@@ -12,8 +12,8 @@ The typical usage will look something like:
 ```mermaid
 sequenceDiagram
     Client->>+Server: Register User
-    Server->>+DB: Save UUID
-    Server->>+Client: Sends UUID
+    Server->>+DB: Save userUUID
+    Server->>+Client: Sends userUUID
     Client->>+Server: Sends State Hash
     Server->>+DB: Saves State Hash
     Client->>+Server: Returns and re-sends state hash
@@ -137,12 +137,11 @@ It doesn't get much CRUDier than this API:
 ## Databases
 
 One of the biggest benefits of Sessionless is that it doesn't need to store any sensitive data.
-This means all of the data continue bee cares about can all be saved in a single table/collection/whatever-other-construct-some-database-may-have.
+This means all of the data Continue Bee cares about can all be saved in a single table/collection/whatever-other-construct-some-database-may-have.
 And that table looks like:
 
-=======================
+----------------------
 | uuid | pubKey | hash
-=======================
 
 uuid, and pubKey should have unique constraints (Sessionless generated keys and uuids should not collide, but since this is a public API people may just reuse keys and uuids).
 
