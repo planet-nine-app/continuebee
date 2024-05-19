@@ -12,16 +12,16 @@ RUN gradle clean bootJar --no-daemon
 FROM amazoncorretto:21-alpine-jdk
 
 # Creating new nonroot user
-RUN adduser --disabled-password --gecos '' continuebeeuser
+RUN adduser --disabled-password --gecos '' sessionlessuser
 
 # Pointing to user's directory
-WORKDIR /home/continuebeeuser
+WORKDIR /home/sessionlessuser
 
 # Swapping user
-USER continuebeeuser
+USER sessionlessuser
 
 #Copy the executable JAR file from builder
-COPY --chown=continuebeeuser:continuebeeuser --from=builder /home/gradle/src/build/libs/*.jar ./
+COPY --chown=sessionlessuser:sessionlessuser --from=builder /home/gradle/src/build/libs/*.jar ./
 RUN cp ./*.jar app.jar
 
 #Expose tomcat server port

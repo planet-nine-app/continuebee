@@ -9,7 +9,7 @@ public class PostgresUserEntityMapper {
     public User map(PostgresUserEntity postgresUserEntity){
         return new User(
                 postgresUserEntity.getId(),
-                postgresUserEntity.getUserUUID(),
+                postgresUserEntity.getUserUuid(),
                 postgresUserEntity.getPublicKey(),
                 postgresUserEntity.getHash()
         );
@@ -18,7 +18,7 @@ public class PostgresUserEntityMapper {
     public PostgresUserEntity map(User user){
         return PostgresUserEntity.builder()
                 .id(user.id())
-                .userUUID(user.userUUID())
+                .userUuid(user.userUuid())
                 .publicKey(user.publicKey())
                 .hash(user.hash())
                 .build();

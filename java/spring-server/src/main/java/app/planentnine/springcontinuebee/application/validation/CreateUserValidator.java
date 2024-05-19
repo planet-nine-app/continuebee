@@ -25,7 +25,7 @@ public class CreateUserValidator {
                     ecNamedCurveParameterSpec.getCurve().decodePoint(publicKeyFormatted.toByteArray());
             
             if (publicKeyPoint == null || !publicKeyPoint.isValid()) {
-                errors.add("Invalid key format");
+                errors.add("Invalid Key format");
             }
         } catch (Exception e) {
             errors.add("Invalid Key format");

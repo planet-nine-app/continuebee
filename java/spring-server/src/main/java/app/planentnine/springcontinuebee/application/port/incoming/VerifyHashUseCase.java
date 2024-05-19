@@ -1,7 +1,7 @@
 package app.planentnine.springcontinuebee.application.port.incoming;
 
-import app.planentnine.springcontinuebee.application.domain.Message;
+import app.planentnine.springcontinuebee.application.domain.Hash;
 
 public interface VerifyHashUseCase {
-    boolean verifyHash(Message message);
+    boolean verifyHash(Hash hash);
 }

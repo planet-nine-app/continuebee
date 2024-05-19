@@ -17,7 +17,7 @@ import java.util.UUID;
 @Builder
 public class PostgresUserEntity {
     private UUID id;
-    private UUID userUUID;
+    private UUID userUuid;
     private String publicKey;
     private String hash;
 }
