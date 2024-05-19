@@ -10,9 +10,11 @@
                 <constraints nullable="false" primaryKey="true"/>
             </column>
             <column name="user_uuid" type="uuid">
-                <constraints nullable="false"/>
+                <constraints nullable="false" unique="true"/>
             </column>
-            <column name="public_key" type="varchar(255)"/>
+            <column name="public_key" type="varchar(255)">
+                <constraints unique="true"/>
+            </column>
             <column name="hash" type="varchar(255)"/>
         </createTable>
     </changeSet>

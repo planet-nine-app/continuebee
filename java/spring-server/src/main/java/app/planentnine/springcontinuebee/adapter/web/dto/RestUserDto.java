@@ -5,5 +5,5 @@ import lombok.extern.jackson.Jacksonized;
 
 @Builder
 @Jacksonized
-public record RestUserDto(String uuid, String pubKey, String hash) {
+public record RestUserDto(String userUUID, String pubKey, String hash) {
 }

@@ -2,11 +2,13 @@ package app.planentnine.springcontinuebee.adapter.persistence.mybatis;
 
 import app.planentnine.springcontinuebee.adapter.persistence.entity.PostgresUserEntity;
 import app.planentnine.springcontinuebee.adapter.util.UuidTypeHandler;
+import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Result;
 import org.apache.ibatis.annotations.Results;
 import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.Update;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -21,7 +23,22 @@ public interface PostgresUserRepository {
     })
     Optional<PostgresUserEntity> loadUserByUuid(@Param("userUuid") UUID userUuid);
     
-    @Insert("INSERT INTO account (id, user_uuid, public_key, hash) " +
-            "VALUES (#{id}, #{userUuid}, #{publicKey}, #{hash})")
+    @Insert("WITH ins AS ( " +
+            "    INSERT INTO account (id, user_uuid, public_key, hash) " +
+            "    VALUES (#{id}, #{userUuid}, #{publicKey}, #{hash}) " +
+            "    ON CONFLICT(public_key) DO NOTHING RETURNING * " +
+            "), " +
+            "sel AS ( " +
+            "    SELECT * FROM account WHERE public_key = #{publicKey} " +
+            ") " +
+            "SELECT * FROM ins UNION ALL SELECT * FROM sel WHERE NOT EXISTS (SELECT * FROM ins)")
     void createNewUser(PostgresUserEntity postgresUserEntity);
+    
+    @Update("UPDATE account SET hash = #{hash} " +
+            "WHERE user_uuid = #{userUuid} " +
+            "AND hash IS NULL")
+    void insertHashIfNone(UUID userUuid, String hash);
+    
+    @Delete("DELETE FROM account WHERE user_uuid = #{userUuid}")
+    void deleteUserByUuid(UUID userUuid);
 }
