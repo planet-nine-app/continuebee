@@ -44,7 +44,7 @@ It doesn't get much CRUDier than this API:
 > |--------------|-----------|-------------------------|-----------------------------------------------------------------------|
 > | publicKey    |  true     | string (hex)            | the publicKey of the user's keypair  |
 > | timestamp    |  true     | string                  | in a production system timestamps prevent replay attacks  |
-> | signature    |  true     | string (signature)      | the signature from sessionless for the message  |
+> | signature    |  true     | string (signature)      | the signature from sessionless for the hash  |
 
 
 ##### Responses
@@ -52,7 +52,7 @@ It doesn't get much CRUDier than this API:
 > | http code     | content-type                      | response                                                            |
 > |---------------|-----------------------------------|---------------------------------------------------------------------|
 > | `200`         | `application/json`                | `{"userUUID": <uuid>}`   |
-> | `400`         | `application/json`                | `{"code":"400","message":"Bad Request"}`                            |
+> | `400`         | `application/json`                | `{"code":"400","hash":"Bad Request"}`                            |
 
 ##### Example cURL
 
@@ -71,7 +71,7 @@ It doesn't get much CRUDier than this API:
 > |--------------|-----------|-------------------------|-----------------------------------------------------------------------|
 > | timestamp    |  true     | string                  | in a production system timestamps prevent replay attacks  |
 > | hash         |  true     | string                  | the state hash saved client side
-> | signature    |  true     | string (signature)      | the signature from sessionless for the message  |
+> | signature    |  true     | string (signature)      | the signature from sessionless for the hash  |
 
 
 ##### Responses
@@ -79,7 +79,7 @@ It doesn't get much CRUDier than this API:
 > | http code     | content-type                      | response                                                            |
 > |---------------|-----------------------------------|---------------------------------------------------------------------|
 > | `200`         | `application/json`                | `{"userUUID": <uuid>}`   |
-> | `400`         | `application/json`                | `{"code":"400","message":"Bad Request"}`                            |
+> | `400`         | `application/json`                | `{"code":"400","hash":"Bad Request"}`                            |
 
 ##### Example cURL
 
@@ -98,7 +98,7 @@ It doesn't get much CRUDier than this API:
 > |--------------|-----------|-------------------------|-----------------------------------------------------------------------|
 > | timestamp    |  true     | string                  | in a production system timestamps prevent replay attacks  |
 > | hash         |  true     | string                  | the state hash saved client side
-> | signature    |  true     | string (signature)      | the signature from sessionless for the message  |
+> | signature    |  true     | string (signature)      | the signature from sessionless for the hash  |
 
 
 ##### Responses
@@ -106,7 +106,7 @@ It doesn't get much CRUDier than this API:
 > | http code     | content-type                      | response                                                            |
 > |---------------|-----------------------------------|---------------------------------------------------------------------|
 > | `200`         | `application/json`                | `{"userUUID": <uuid>}`   |
-> | `400`         | `application/json`                | `{"code":"400","message":"Bad Request"}`                            |
+> | `400`         | `application/json`                | `{"code":"400","hash":"Bad Request"}`                            |
 
 ##### Example cURL
 
@@ -124,7 +124,7 @@ It doesn't get much CRUDier than this API:
 > | http code     | content-type                      | response                                                            |
 > |---------------|-----------------------------------|---------------------------------------------------------------------|
 > | `200`         | `application/json`                | `{"deleted": true}`   |
-> | `400`         | `application/json`                | `{"code":"400","message":"Bad Request"}`                            |
+> | `400`         | `application/json`                | `{"code":"400","hash":"Bad Request"}`                            |
 
 ##### Example cURL
 
