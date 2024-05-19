@@ -1,7 +1,7 @@
 package app.planentnine.springcontinuebee.application.port.incoming;
 
-import app.planentnine.springcontinuebee.application.domain.Message;
+import java.util.UUID;
 
 public interface DeleteUserUseCase {
-    boolean deleteUser(Message message);
+    boolean deleteUser(UUID userUuid);
 }

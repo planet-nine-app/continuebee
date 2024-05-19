@@ -4,7 +4,9 @@ import app.planentnine.springcontinuebee.application.domain.exception.Validation
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -18,8 +20,13 @@ public class VerifyHashValidator {
     public Optional<ValidationException> validate(LocalDateTime timestamp){
         List<String> errors = new ArrayList<>();
         
-        if (timestamp.isBefore(LocalDateTime.now().minusSeconds(VALID_WINDOW_IN_SECONDS))){
+        if (timestamp.isBefore(
+                LocalDateTime.ofInstant(Instant.now(), ZoneOffset.UTC)
+                .minusSeconds(VALID_WINDOW_IN_SECONDS))){
+            
             errors.add("Timestamp only valid within " + VALID_WINDOW_IN_SECONDS + " seconds");
+            errors.add("Now: " + LocalDateTime.now());
+            errors.add("Provided: " + timestamp);
         }
         
         if (errors.isEmpty()){
