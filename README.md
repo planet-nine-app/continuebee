@@ -44,6 +44,7 @@ It doesn't get much CRUDier than this API:
 > |--------------|-----------|-------------------------|-----------------------------------------------------------------------|
 > | publicKey    |  true     | string (hex)            | the publicKey of the user's keypair  |
 > | timestamp    |  true     | string                  | in a production system timestamps prevent replay attacks  |
+> | hash         |  true     | string                  | the state hash to save for the user
 > | signature    |  true     | string (signature)      | the signature from sessionless for the message  |
 
 
@@ -79,7 +80,7 @@ It doesn't get much CRUDier than this API:
 > | http code     | content-type                      | response                                                            |
 > |---------------|-----------------------------------|---------------------------------------------------------------------|
 > | `200`         | `application/json`                | `{"userUUID": <uuid>}`   |
-> | `400`         | `application/json`                | `{"code":"400","message":"Bad Request"}`                            |
+> | `406`         | `application/json`                | `{"code":"406","message":"Not acceptable"}`                            |
 
 ##### Example cURL
 
@@ -97,6 +98,7 @@ It doesn't get much CRUDier than this API:
 > | name         |  required     | data type               | description                                                           |
 > |--------------|-----------|-------------------------|-----------------------------------------------------------------------|
 > | timestamp    |  true     | string                  | in a production system timestamps prevent replay attacks  |
+> | oldHash      |  true     | string                  | the old hash to replace
 > | hash         |  true     | string                  | the state hash saved client side
 > | signature    |  true     | string (signature)      | the signature from sessionless for the message  |
 
