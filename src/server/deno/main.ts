@@ -1,8 +1,11 @@
+import { Application, Router } from "https://deno.land/x/oak/mod.ts";
+import { oakCors } from "https://deno.land/x/cors/mod.ts";
 import sessionless from "npm:sessionless-node@^0.10.1";
 import { getUser, saveUser } from "./src/persistence/user.ts";
 
-const register = async (request: Request): object => {
-  const payload = await request.json();
+const register = async (context): object => {
+  const request = context.request;
+  const payload = await request.body.json();
   const signature = payload.signature;
 
   const message = JSON.stringify({
@@ -10,20 +13,24 @@ const register = async (request: Request): object => {
     pubKey: payload.pubKey
   });
 
+console.log('verifying: ' + message);
+
   if(!signature || !sessionless.verifySignature(signature, message, payload.pubKey)) {
-    return {
+    context.response.body = {
       status: 403, 
       error: 'Auth error'
     };
+    return;
   }
 
   const uuid = sessionless.generateUUID();
   await saveUser(uuid, payload.pubKey, payload.hash);
 
-  return { uuid };
+  context.response.body = { uuid };
 };
 
-const checkHash = async (request: Request): object => {
+const checkHash = async (context): object => {
+  const request = context.request;
   const url = new URL(request.url);
   const params = url.searchParams;
   const pathname = url.pathname;
@@ -38,23 +45,26 @@ const checkHash = async (request: Request): object => {
   const user = await getUser(uuid);
 
   if(!signature || !sessionless.verifySignature(signature, message, user.pubKey)) {
-    return {
+    context.response.body = {
       status: 403,
       error: 'Auth error'
-    };
+    }; 
+    return;
   }
 
   if(user.hash === params.get('hash')) {
-    return { userUUID: uuid };
+    context.response.body = { userUUID: uuid };
+    return;
   } 
-  return {
+  context.response.body = {
     status: 406,
     error: 'Not acceptable'
   };
 };
 
-const saveHash = async (request: Request): object => {
-  const payload = await request.json();
+const saveHash = async (context): object => {
+  const request = context.request;
+  const payload = await request.body.json();
   const signature = payload.signature;
   const pathname = new URL(request.url).pathname;
 
@@ -68,56 +78,35 @@ const saveHash = async (request: Request): object => {
   const user = await getUser(uuid);
 
   if(!signature || !sessionless.verifySignature(signature, message, user.pubKey)) {
-    return {
+    context.response.body = {
       status: 403,
       error: 'Auth error'
     };
+    return;
   }
 
   await saveUser(user.uuid, user.pubKey, payload.hash);
 
-  return {
+  context.response.body = {
     userUUID: user.uuid
   };
 };
 
 const deleteUser = async (request: Request): object => {
-  return {
+  context.response.body = {
     status: 501,
     error: 'Not implemented'
   };
 };
 
-const dispatch = async (request: Request): object => {
-  const url = request.url;
-  if(request.method === 'PUT') {
-    return await register(request);
-  }
+const router = new Router();
+router.put("/user/create", register);
+router.get("/user/:uuid", checkHash);
+router.post("/user/:uuid/save-hash", saveHash);
+router.delete("/user/:uuid", deleteUser);
 
-  if(request.method === 'GET') {
-    return await checkHash(request);
-  }
+const app = new Application();
+app.use(oakCors()); 
+app.use(router.routes());
 
-  if(request.method === 'POST') {
-    return await saveHash(request);
-  }
-
-  if(request.method === 'DELETE') {
-    return await deleteUser(request);
-  }
-
-  return {
-    status: 404,
-    body: {error: 'not found'}
-  };
-};
-
-Deno.serve({port: 3000}, async (request: Request) => {
-  const res = await dispatch(request);
-  console.log(res);
-  return new Response(JSON.stringify(res), {
-    headers: {
-      "content-type": "application/json; charset=utf-8",
-    }
-  });
-});
+await app.listen({ port: 3000 });
