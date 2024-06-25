@@ -4,6 +4,6 @@ import app.planentnine.springcontinuebee.application.domain.User;
 
 import java.util.UUID;
 
-public interface InsertHashIfNonePort {
-    User insertHashIfNone(UUID uuid, String hash);
+public interface UpdateHashPort {
+    User updateHash(UUID uuid, String newHash);
 }

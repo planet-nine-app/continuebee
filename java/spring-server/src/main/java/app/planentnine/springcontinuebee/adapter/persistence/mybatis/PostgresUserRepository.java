@@ -23,21 +23,14 @@ public interface PostgresUserRepository {
     })
     Optional<PostgresUserEntity> loadUserByUuid(@Param("userUuid") UUID userUuid);
     
-    @Insert("WITH ins AS ( " +
-            "    INSERT INTO account (id, user_uuid, public_key, hash) " +
-            "    VALUES (#{id}, #{userUuid}, #{publicKey}, #{hash}) " +
-            "    ON CONFLICT(public_key) DO NOTHING RETURNING * " +
-            "), " +
-            "sel AS ( " +
-            "    SELECT * FROM account WHERE public_key = #{publicKey} " +
-            ") " +
-            "SELECT * FROM ins UNION ALL SELECT * FROM sel WHERE NOT EXISTS (SELECT * FROM ins)")
+    @Insert(
+            "INSERT INTO account (id, user_uuid, public_key, hash) " +
+            "VALUES (#{id}, #{userUuid}, #{publicKey}, #{hash}) ")
     void createNewUser(PostgresUserEntity postgresUserEntity);
     
-    @Update("UPDATE account SET hash = #{hash} " +
-            "WHERE user_uuid = #{userUuid} " +
-            "AND hash IS NULL")
-    void insertHashIfNone(UUID userUuid, String hash);
+    @Update("UPDATE account SET hash = #{newHash} " +
+            "WHERE user_uuid = #{userUuid}")
+    long updateHash(UUID userUuid, String newHash);
     
     @Delete("DELETE FROM account WHERE user_uuid = #{userUuid}")
     void deleteUserByUuid(UUID userUuid);

@@ -1,14 +1,17 @@
 package app.planentnine.springcontinuebee.adapter.web;
 
-import app.planentnine.springcontinuebee.adapter.web.dto.RestHashDto;
+import app.planentnine.springcontinuebee.adapter.web.dto.RestCreateUserDto;
+import app.planentnine.springcontinuebee.adapter.web.dto.RestDeleteUserDto;
+import app.planentnine.springcontinuebee.adapter.web.dto.RestUpdateHashDto;
 import app.planentnine.springcontinuebee.adapter.web.dto.RestUserDto;
-import app.planentnine.springcontinuebee.adapter.web.dto.mapper.RestHashDtoMapper;
+import app.planentnine.springcontinuebee.adapter.web.dto.RestVerifyHashDto;
+import app.planentnine.springcontinuebee.adapter.web.dto.mapper.RestMessageMapper;
 import app.planentnine.springcontinuebee.adapter.web.dto.mapper.RestUserDtoMapper;
 import app.planentnine.springcontinuebee.application.domain.User;
 import app.planentnine.springcontinuebee.application.domain.exception.ValidationException;
 import app.planentnine.springcontinuebee.application.port.incoming.CreateUserUseCase;
 import app.planentnine.springcontinuebee.application.port.incoming.DeleteUserUseCase;
-import app.planentnine.springcontinuebee.application.port.incoming.InsertHashIfNoneUseCase;
+import app.planentnine.springcontinuebee.application.port.incoming.UpdateHashUseCase;
 import app.planentnine.springcontinuebee.application.port.incoming.VerifyHashUseCase;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -21,7 +24,6 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 
-import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -32,37 +34,37 @@ public class UserController {
     
     private final CreateUserUseCase createUserUseCase;
     private final DeleteUserUseCase deleteUserUseCase;
-    private final InsertHashIfNoneUseCase insertHashIfNoneUseCase;
+    private final UpdateHashUseCase updateHashUseCase;
     private final VerifyHashUseCase verifyHashUseCase;
     private final RestUserDtoMapper userDtoMapper;
-    private final RestHashDtoMapper hashDtoMapper;
+    private final RestMessageMapper messageMapper;
     
     @Autowired
     public UserController(CreateUserUseCase createUserUseCase,
                           DeleteUserUseCase deleteUserUseCase,
-                          InsertHashIfNoneUseCase insertHashIfNoneUseCase,
+                          UpdateHashUseCase updateHashUseCase,
                           VerifyHashUseCase verifyHashUseCase,
                           RestUserDtoMapper restUserDtoMapper,
-                          RestHashDtoMapper restHashDtoMapper) {
+                          RestMessageMapper messageMapper) {
         this.createUserUseCase = createUserUseCase;
         this.deleteUserUseCase = deleteUserUseCase;
-        this.insertHashIfNoneUseCase = insertHashIfNoneUseCase;
+        this.updateHashUseCase = updateHashUseCase;
         this.verifyHashUseCase = verifyHashUseCase;
         this.userDtoMapper = restUserDtoMapper;
-        this.hashDtoMapper = restHashDtoMapper;
+        this.messageMapper = messageMapper;
     }
     
-    @PutMapping("/{publicKey}")
-    public ResponseEntity<Object> createUser(@PathVariable String publicKey,
-                                             @RequestParam(required = false) String hash) {
+    @PutMapping("/create")
+    public ResponseEntity<Object> createUser(@RequestBody RestCreateUserDto createUserDto) {
         try {
             RestUserDto userDto = RestUserDto.builder()
                     .userUUID(null)
-                    .pubKey(publicKey)
-                    .hash(hash)
+                    .pubKey(createUserDto.pubKey())
+                    .hash(createUserDto.hash())
                     .build();
             
-            User user = createUserUseCase.createUser(userDtoMapper.map(userDto));
+            
+            User user = createUserUseCase.createUser(messageMapper.map(createUserDto), userDtoMapper.map(userDto));
             Map<String, String> responseMap = new HashMap<>();
             responseMap.put("userUuid", user.userUuid().toString());
             return ResponseEntity.accepted().body(responseMap);
@@ -73,18 +75,18 @@ public class UserController {
     
     @GetMapping("/{uuid}")
     public ResponseEntity<Object> verifyHash(@PathVariable UUID uuid,
-                                             @RequestParam LocalDateTime timestamp,
+                                             @RequestParam Long timestamp,
                                              @RequestParam String hash,
-                                             @RequestParam String[] signature) {
+                                             @RequestParam String signature) {
         try {
-            RestHashDto hashDto = RestHashDto.builder()
-                    .uuid(uuid)
-                    .timestamp(timestamp)
-                    .hash(hash)
-                    .signature(signature)
-                    .build();
+             RestVerifyHashDto verifyHashDto = new RestVerifyHashDto(
+                     timestamp,
+                     uuid,
+                     hash,
+                     signature
+             );
             
-            boolean verified = verifyHashUseCase.verifyHash(hashDtoMapper.map(hashDto));
+            boolean verified = verifyHashUseCase.verifyHash(messageMapper.map(verifyHashDto));
             if (verified) {
                 return ResponseEntity.accepted().body(uuid.toString());
             } else {
@@ -95,21 +97,21 @@ public class UserController {
         }
     }
     
-    @PostMapping("/save-hash")
-    public ResponseEntity<Object> saveHash(@RequestBody User user) {
-        if (insertHashIfNoneUseCase.insertHashIfNone(user.userUuid(), user.hash())) {
-            return ResponseEntity.accepted().body(user.userUuid().toString());
+    @PostMapping("/update-hash")
+    public ResponseEntity<Object> updateHash(@RequestBody RestUpdateHashDto updateHashDto) {
+        if (updateHashUseCase.updateHash(messageMapper.map(updateHashDto), updateHashDto.newHash())) {
+            return ResponseEntity.accepted().body(updateHashDto.userUuid().toString());
         } else {
             return ResponseEntity.badRequest().body("Bad Request");
         }
     }
     
-    @DeleteMapping("/{uuid}")
-    public ResponseEntity<Object> deleteUser(@PathVariable UUID uuid) {
-        boolean deleted = deleteUserUseCase.deleteUser(uuid);
+    @DeleteMapping("/delete")
+    public ResponseEntity<Object> deleteUser(@RequestBody RestDeleteUserDto deleteUserDto) {
+        boolean deleted = deleteUserUseCase.deleteUser(messageMapper.map(deleteUserDto));
         
         if (deleted) {
-            return ResponseEntity.accepted().body(deleted);
+            return ResponseEntity.accepted().body(true);
         } else {
             return ResponseEntity.badRequest().body("Bad Request");
         }
