@@ -21,9 +21,9 @@ public class RestMessageMapper {
     
     public Message map(RestDeleteUserDto deleteUserDto){
         return new Message(
-                deleteUserDto.userUUID(),
+                deleteUserDto.userUuid(),
                 deleteUserDto.hash(),
-                String.format("%s%s%s", deleteUserDto.timestamp(), deleteUserDto.userUUID(), deleteUserDto.hash()),
+                String.format("%s%s%s", deleteUserDto.timestamp(), deleteUserDto.userUuid(), deleteUserDto.hash()),
                 deleteUserDto.signature(),
                 deleteUserDto.timestamp()
         );
@@ -31,11 +31,11 @@ public class RestMessageMapper {
     
     public Message map(RestUpdateHashDto updateHashDto){
         return new Message(
-                updateHashDto.userUUID(),
+                updateHashDto.userUuid(),
                 updateHashDto.hash(),
                 String.format("%s%s%s%s",
                         updateHashDto.timestamp(),
-                        updateHashDto.userUUID(),
+                        updateHashDto.userUuid(),
                         updateHashDto.hash(),
                         updateHashDto.newHash()),
                 updateHashDto.signature(),
@@ -45,9 +45,9 @@ public class RestMessageMapper {
     
     public Message map(RestVerifyHashDto verifyHashDto){
         return new Message(
-                verifyHashDto.userUUID(),
+                verifyHashDto.userUuid(),
                 verifyHashDto.hash(),
-                String.format("%s%s%s", verifyHashDto.timestamp(), verifyHashDto.userUUID(), verifyHashDto.hash()),
+                String.format("%s%s%s", verifyHashDto.timestamp(), verifyHashDto.userUuid(), verifyHashDto.hash()),
                 verifyHashDto.signature(),
                 verifyHashDto.timestamp()
         );

@@ -1,6 +1,6 @@
 # Continue Bee
 
-*Continue Bee* (50 points to anyone who gets the reference) is a lightweight implementation of the [Sessionless][sessionless] authentication protocol, which allows implementers to save a hash of client state, and then check that state when a client returns.
+*Continue Bee* (50 points to anyone who gets the reference) is a lightweight implementation of the [Sessionless][sessionless] authentication protocol, which allows implementers to save a message of client state, and then check that state when a client returns.
 
 ## Overview
 
@@ -16,7 +16,7 @@ sequenceDiagram
     Server->>+Client: Sends userUUID
     Client->>+Server: Sends State Hash
     Server->>+DB: Saves State Hash
-    Client->>+Server: Returns and re-sends state hash
+    Client->>+Server: Returns and re-sends state message
     Server->>+DB: Checks State Hash
     Server->>+Client: Returns OK/not OK
 ```
@@ -44,7 +44,7 @@ It doesn't get much CRUDier than this API:
 > |--------------|-----------|-------------------------|-----------------------------------------------------------------------|
 > | publicKey    |  true     | string (hex)            | the publicKey of the user's keypair  |
 > | timestamp    |  true     | string                  | in a production system timestamps prevent replay attacks  |
-> | signature    |  true     | string (signature)      | the signature from sessionless for the hash  |
+> | signature    |  true     | string (signature)      | the signature from sessionless for the message  |
 
 
 ##### Responses
@@ -52,7 +52,7 @@ It doesn't get much CRUDier than this API:
 > | http code     | content-type                      | response                                                            |
 > |---------------|-----------------------------------|---------------------------------------------------------------------|
 > | `200`         | `application/json`                | `{"userUUID": <uuid>}`   |
-> | `400`         | `application/json`                | `{"code":"400","hash":"Bad Request"}`                            |
+> | `400`         | `application/json`                | `{"code":"400","message":"Bad Request"}`                            |
 
 ##### Example cURL
 
@@ -63,15 +63,15 @@ It doesn't get much CRUDier than this API:
 </details>
 
 <details>
- <summary><code>GET</code> <code><b>/user/:uuid?timestamp=<timestamp>&hash=<hash>&signature=<signature></b></code> <code>Returns whether last saved hash matches sent hash</code></summary>
+ <summary><code>GET</code> <code><b>/user/:uuid?timestamp=<timestamp>&message=<message>&signature=<signature></b></code> <code>Returns whether last saved message matches sent message</code></summary>
 
 ##### Parameters
 
 > | name         |  required     | data type               | description                                                           |
 > |--------------|-----------|-------------------------|-----------------------------------------------------------------------|
 > | timestamp    |  true     | string                  | in a production system timestamps prevent replay attacks  |
-> | hash         |  true     | string                  | the state hash saved client side
-> | signature    |  true     | string (signature)      | the signature from sessionless for the hash  |
+> | message         |  true     | string                  | the state message saved client side
+> | signature    |  true     | string (signature)      | the signature from sessionless for the message  |
 
 
 ##### Responses
@@ -79,26 +79,26 @@ It doesn't get much CRUDier than this API:
 > | http code     | content-type                      | response                                                            |
 > |---------------|-----------------------------------|---------------------------------------------------------------------|
 > | `200`         | `application/json`                | `{"userUUID": <uuid>}`   |
-> | `400`         | `application/json`                | `{"code":"400","hash":"Bad Request"}`                            |
+> | `400`         | `application/json`                | `{"code":"400","message":"Bad Request"}`                            |
 
 ##### Example cURL
 
 > ```javascript
->  curl -X GET -H "Content-Type: application/json" https://www.continuebee.com/<uuid>?timestamp=123&hash=hash&signature=signature 
+>  curl -X GET -H "Content-Type: application/json" https://www.continuebee.com/<uuid>?timestamp=123&message=message&signature=signature 
 > ```
 
 </details>
 
 <details>
-  <summary><code>POST</code> <code><b>/user/:uuid/save-hash</b></code> <code>Returns whether last saved hash matches sent hash</code></summary>
+  <summary><code>POST</code> <code><b>/user/:uuid/save-message</b></code> <code>Returns whether last saved message matches sent message</code></summary>
 
 ##### Parameters
 
 > | name         |  required     | data type               | description                                                           |
 > |--------------|-----------|-------------------------|-----------------------------------------------------------------------|
 > | timestamp    |  true     | string                  | in a production system timestamps prevent replay attacks  |
-> | hash         |  true     | string                  | the state hash saved client side
-> | signature    |  true     | string (signature)      | the signature from sessionless for the hash  |
+> | message         |  true     | string                  | the state message saved client side
+> | signature    |  true     | string (signature)      | the signature from sessionless for the message  |
 
 
 ##### Responses
@@ -106,12 +106,12 @@ It doesn't get much CRUDier than this API:
 > | http code     | content-type                      | response                                                            |
 > |---------------|-----------------------------------|---------------------------------------------------------------------|
 > | `200`         | `application/json`                | `{"userUUID": <uuid>}`   |
-> | `400`         | `application/json`                | `{"code":"400","hash":"Bad Request"}`                            |
+> | `400`         | `application/json`                | `{"code":"400","message":"Bad Request"}`                            |
 
 ##### Example cURL
 
 > ```javascript
->  curl -X POST -H "Content-Type: application/json" -d '{"timestamp": "right now", "hash": "hash", "signature": "signature"}' https://www.continuebee.com/user/<uuid>/save-hash
+>  curl -X POST -H "Content-Type: application/json" -d '{"timestamp": "right now", "message": "message", "signature": "signature"}' https://www.continuebee.com/user/<uuid>/save-message
 > ```
 
 </details>
@@ -124,7 +124,7 @@ It doesn't get much CRUDier than this API:
 > | http code     | content-type                      | response                                                            |
 > |---------------|-----------------------------------|---------------------------------------------------------------------|
 > | `200`         | `application/json`                | `{"deleted": true}`   |
-> | `400`         | `application/json`                | `{"code":"400","hash":"Bad Request"}`                            |
+> | `400`         | `application/json`                | `{"code":"400","message":"Bad Request"}`                            |
 
 ##### Example cURL
 
@@ -140,7 +140,7 @@ One of the biggest benefits of Sessionless is that it doesn't need to store any 
 This means all of the data Continue Bee cares about can all be saved in a single table/collection/whatever-other-construct-some-database-may-have.
 And that table looks like:
 
-| uuid  | pubKey | hash
+| uuid  | pubKey | message
 :-------|:-------|:-----
  string | string | string
 
@@ -155,9 +155,9 @@ To do so they should implement the following methods:
 
 `createUser()` - Should generate keys, save them appropriately client side, and PUT to /user/create.
 
-`saveHash(hash)` - Should POST the passed in hash to /user/:uuid/save-hash.
+`saveHash(message)` - Should POST the passed in message to /user/:uuid/save-message.
 
-`checkHash(hash)` - Should GET to check the saved hash on the client against the saved hash on the server via /user/:uuid?timestamp=timestamp&hash=hash&signature=signature.
+`checkHash(message)` - Should GET to check the saved message on the client against the saved message on the server via /user/:uuid?timestamp=timestamp&message=message&signature=signature.
 
 `deleteUser(uuid)` - Should DELETE a user by calling /user/:uuid.
 

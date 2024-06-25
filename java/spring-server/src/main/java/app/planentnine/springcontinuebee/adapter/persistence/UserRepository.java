@@ -5,7 +5,7 @@ import app.planentnine.springcontinuebee.adapter.persistence.mybatis.PostgresUse
 import app.planentnine.springcontinuebee.application.domain.User;
 import app.planentnine.springcontinuebee.application.port.outgoing.CreateUserIfNotExistsPort;
 import app.planentnine.springcontinuebee.application.port.outgoing.DeleteUserByUuidPort;
-import app.planentnine.springcontinuebee.application.port.outgoing.InsertHashIfNonePort;
+import app.planentnine.springcontinuebee.application.port.outgoing.UpdateHashPort;
 import app.planentnine.springcontinuebee.application.port.outgoing.LoadUserByUserUuidPort;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,7 +16,7 @@ import java.util.UUID;
 
 @Repository
 @Slf4j
-public class UserRepository implements CreateUserIfNotExistsPort, DeleteUserByUuidPort, InsertHashIfNonePort, LoadUserByUserUuidPort {
+public class UserRepository implements CreateUserIfNotExistsPort, DeleteUserByUuidPort, UpdateHashPort, LoadUserByUserUuidPort {
     
     private final PostgresUserRepository postgresUserRepository;
     private final PostgresUserEntityMapper postgresUserEntityMapper;
@@ -37,8 +37,8 @@ public class UserRepository implements CreateUserIfNotExistsPort, DeleteUserByUu
     
     
     @Override
-    public User insertHashIfNone(UUID uuid, String hash) {
-        postgresUserRepository.insertHashIfNone(uuid, hash);
+    public User updateHash(UUID uuid, String newHash) {
+        postgresUserRepository.updateHash(uuid, newHash);
         
         return loadByUserUuid(uuid)
                 .orElseThrow(() -> new RuntimeException("Something went wrong inserting hash for user: " + uuid));
