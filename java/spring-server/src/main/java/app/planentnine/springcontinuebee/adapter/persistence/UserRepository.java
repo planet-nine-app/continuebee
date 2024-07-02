@@ -47,8 +47,8 @@ public class UserRepository implements CreateUserIfNotExistsPort, DeleteUserByUu
     @Override
     public User createUserIfNotExists(User user) {
         postgresUserRepository.createNewUser(postgresUserEntityMapper.map(user));
-        return loadByUserUuid(user.userUuid())
-                .orElseThrow(() -> new RuntimeException("Something went wrong creating new user: " + user.userUuid()));
+        return loadByUserUuid(user.userUUID())
+                .orElseThrow(() -> new RuntimeException("Something went wrong creating new user: " + user.userUUID()));
     }
     
     @Override
