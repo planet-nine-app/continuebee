@@ -68,7 +68,10 @@ it('should save hash', async () => {
   const newHash = 'secondHash';
 
   const signature = await sessionless.sign(timestamp + userUUID + hash + newHash);
+  const payload = {timestamp, userUUID, hash, newHash, signature};
 
-  const res = await put(`${baseURL}user/update-hash`, {timestamp, userUUID, hash, newHash, signature});
+console.log(payload);
+
+  const res = await put(`${baseURL}user/update-hash`, payload);
   res.body.userUUID.length.should.equal(36);
 });
