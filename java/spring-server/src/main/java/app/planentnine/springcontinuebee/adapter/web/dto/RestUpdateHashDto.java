@@ -7,5 +7,5 @@ import java.util.UUID;
 
 @Builder
 @Jacksonized
-public record RestUpdateHashDto(Long timestamp, UUID userUuid, String hash, String newHash, String signature) {
+public record RestUpdateHashDto(Long timestamp, UUID userUUID, String hash, String newHash, String signature) {
 }

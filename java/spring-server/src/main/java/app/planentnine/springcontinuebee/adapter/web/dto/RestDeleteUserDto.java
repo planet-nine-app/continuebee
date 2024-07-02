@@ -7,5 +7,5 @@ import java.util.UUID;
 
 @Builder
 @Jacksonized
-public record RestDeleteUserDto(Long timestamp, UUID userUuid, String hash, String signature) {
+public record RestDeleteUserDto(Long timestamp, UUID userUUID, String hash, String signature) {
 }
