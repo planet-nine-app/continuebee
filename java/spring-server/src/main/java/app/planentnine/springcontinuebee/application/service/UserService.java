@@ -46,7 +46,8 @@ public class UserService implements CreateUserUseCase, DeleteUserUseCase, Verify
         if (validationResult.isPresent()) {
             throw validationResult.get();
         }
-        if (verifyHash(message)) {
+        
+        if (verifyMessage(message, user)) {
             User createdUser = new User(
                     UUID.randomUUID(),
                     Sessionless.generateUuid(),
@@ -62,8 +63,8 @@ public class UserService implements CreateUserUseCase, DeleteUserUseCase, Verify
     
     @Override
     public boolean updateHash(Message message, String newHash) {
-        if (verifyHash(message)) {
-            User user = updateHashPort.updateHash(message.userUuid(), newHash);
+        if (loadUserKeyAndValidateMessage(message)) {
+            User user = updateHashPort.updateHash(message.userUUID(), newHash);
             return user.hash().equals(newHash);
         } else {
             return false;
@@ -72,8 +73,8 @@ public class UserService implements CreateUserUseCase, DeleteUserUseCase, Verify
     
     @Override
     public boolean deleteUser(Message message) {
-        if (verifyHash(message)) {
-            return deleteUserByUuidPort.deleteUserByUuid(message.userUuid());
+        if (loadUserKeyAndValidateMessage(message)) {
+            return deleteUserByUuidPort.deleteUserByUuid(message.userUUID());
         } else {
             return false;
         }
@@ -82,15 +83,20 @@ public class UserService implements CreateUserUseCase, DeleteUserUseCase, Verify
     
     @Override
     public boolean verifyHash(Message message) {
-        return validateMessage(message);
+        return loadUserKeyAndValidateMessage(message);
     }
     
     
     // Get users public key, check the message paylood using sessionles with PubKey + payload + signature,
     // verify timestamp within window, Confirm hash matches
-    public boolean validateMessage(Message message) {
-        User user = loadUserByUserUuidPort.loadByUserUuid(message.userUuid())
-                .orElseThrow(() -> new RuntimeException("User with id: " + message.userUuid() + "could not be found from message"));
+    private boolean loadUserKeyAndValidateMessage(Message message) {
+        User user = loadUserByUserUuidPort.loadByUserUuid(message.userUUID())
+                .orElseThrow(() -> new RuntimeException("User with id: " + message.userUUID() + "could not be found from message"));
+        
+        return verifyMessage(message, user);
+    }
+    
+    private boolean verifyMessage(Message message, User user) {
         
         Optional<ValidationException> validationResult =
                 messageFormatValidator.validate(user.publicKey(), message);
