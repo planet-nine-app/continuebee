@@ -48,7 +48,10 @@ Content-Type: application/json
 ### Parameters:
 Query Parameters
 ```
-uuid = 
+uuid = 3e00c9fd-6588-4b34-8e0c-daf40a8adeec
+timestamp = 1719881098285
+hash = password
+signature = 64724c3de2ce61bdb10945e3b53aacc8f5fab5913127158a1ac7ec08d9e996a31449953fef9c5640a440a643992d9b9232e3eda05c5ef0feac638f823d7ebd5a
 ```
 ### Response:
 HTTP/1.1 202 OK
