@@ -68,7 +68,7 @@ public class UserController {
             
             User user = createUserUseCase.createUser(messageMapper.map(createUserDto), userDtoMapper.map(userDto));
             Map<String, String> responseMap = new HashMap<>();
-            responseMap.put("userUuid", user.userUUID().toString());
+            responseMap.put("userUUID", user.userUUID().toString());
             return ResponseEntity.accepted().body(responseMap);
         } catch (ValidationException e) {
             return ResponseEntity.badRequest().body(e.getErrors());
