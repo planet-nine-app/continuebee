@@ -26,7 +26,7 @@ HTTP/1.1 201 Created
 Content-Type: application/json
 ```
 {
-    "userId": "3e00c9fd-6588-4b34-8e0c-daf40a8adeec"
+    "userUUID": "3e00c9fd-6588-4b34-8e0c-daf40a8adeec"
 }
 ```
 HTTP/1.1 400 bad request
@@ -59,7 +59,7 @@ HTTP/1.1 202 OK
 Content-Type: application/json
 ```
 {
-    "status": 200,
+    "status": 202,
     "message": "3e00c9fd-6588-4b34-8e0c-daf40a8adeec"
 }
 ```
@@ -88,7 +88,7 @@ Content-Type: application/json
 ```
 { 
   "timestamp": 1719881098285,
-  "pubKey": "028f73a2dfa092d3a676310d8625b085f2f60702498803bd124cd475287bbfa126",
+  "userUUID": "028f73a2dfa092d3a676310d8625b085f2f60702498803bd124cd475287bbfa126",
   "hash": "password",
   "newHash": "newPassword"
   "signature": "81fd959d0e5deb35e960ddc816b90be3cf179795cc234757c36d3776559909e05d852e8d95a79dca8a28b83b198c8c4f8f4acb6337a7cdab4f7b3144c02150aa"
@@ -102,7 +102,7 @@ HTTP/1.1 202 Accepted
 Content-Type: application/json
 ```
 {
-    "userId": "3e00c9fd-6588-4b34-8e0c-daf40a8adeec"
+    "userUUID": "3e00c9fd-6588-4b34-8e0c-daf40a8adeec"
 }
 ```
 HTTP/1.1 400 bad request
@@ -130,7 +130,7 @@ Content-Type: application/json
 ```
 { 
   "timestamp": 1719881098285,
-  "pubKey": "028f73a2dfa092d3a676310d8625b085f2f60702498803bd124cd475287bbfa126",
+  "userUUID": "028f73a2dfa092d3a676310d8625b085f2f60702498803bd124cd475287bbfa126",
   "hash": "password",
   "signature": "7455581755ebce4a07fe7bb1a8825dd21b946e9e7de87456a0d450e1877c98fae849714bdd986810732b8157a91e5d5e81233a33ae51fe238713ee18fce7b91d"
 }
