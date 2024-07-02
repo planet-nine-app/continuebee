@@ -93,7 +93,7 @@ public class Sessionless {
         MessageDigest digest = new Keccak.Digest256();
         byte[] messageHash = digest.digest(message.getBytes());
         
-        return signer.verifySignature(messageHash, new BigInteger(signature.substring(0, 32), 16), new BigInteger(signature.substring(32, 64), 16));
+        return signer.verifySignature(messageHash, new BigInteger(signature.substring(0, 64), 16), new BigInteger(signature.substring(64, 128), 16));
     }
     
     public static boolean associate(String primaryPublicKey, String primarySignature, String primaryMessage,
