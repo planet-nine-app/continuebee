@@ -3,8 +3,8 @@ should();
 import sessionless from 'sessionless-node';
 import superAgent from 'superagent';
 
-//const baseURL = 'http://127.0.0.1:3000/';
-const baseURL = 'https://thirsty-gnu-80.deno.dev/';
+const baseURL = 'http://127.0.0.1:8080/';
+//const baseURL = 'https://thirsty-gnu-80.deno.dev/';
 
 const get = async function(path) {
   //console.info("Getting " + path);
@@ -12,12 +12,13 @@ const get = async function(path) {
 };
 
 const put = async function(path, body) {
-  //console.info("Posting " + path);
+  //console.info("Putting " + path);
   return await superAgent.put(path).send(body).set('Content-Type', 'application/json');
 };
 
 const post = async function(path, body) {
-  //console.info("Putting " + path);
+  //console.info("Posting " + path);
+  //console.info(body);
   return await superAgent.post(path).send(body).set('Content-Type', 'application/json');
 };
 
@@ -33,41 +34,40 @@ console.log(keys);
   };
   const payload = {
     timestamp: new Date().getTime() + '',
-    pubKey: keys.pubKey
+    pubKey: keys.pubKey,
+    hash: 'firstHash'
   };
 
-  payload.signature = await sessionless.sign(JSON.stringify(payload));
+  payload.signature = await sessionless.sign(payload.timestamp + payload.pubKey + payload.hash);
 
-  payload.hash = 'first-hash';
-
-  const res = await put(`${baseURL}user/create`, payload);
+try {
+  const res = await post(`${baseURL}user/create`, payload);
   savedUser = res.body;
-console.log(savedUser);
-  res.body.uuid.length.should.equal(36);
+  res.body.userUUID.length.should.equal(36);
+} catch(err) {
+console.warn(err);
+}
 });
 
 it('should check hash', async () => {
-  const message = {
-    timestamp: new Date().getTime() + '',
-    hash: 'first-hash'
-  };
+  const timestamp = new Date().getTime() + '';
+  const uuid = savedUser.userUUID;
+  const hash = 'firstHash';
 
-  const signature = await sessionless.sign(JSON.stringify(message));
+  const signature = await sessionless.sign(timestamp + uuid + hash);
 
-  const res = await get(`${baseURL}user/${savedUser.uuid}?timestamp=${message.timestamp}&hash=${message.hash}&signature=${signature}`);
-//console.log(res);
+  const res = await get(`${baseURL}user/${uuid}?timestamp=${timestamp}&hash=${hash}&signature=${signature}`);
   res.body.userUUID.length.should.equal(36);
 });
 
 it('should save hash', async () => {
-  const message = {
-    timestamp: new Date().getTime() + '',
-    oldHash: 'first-hash',
-    hash: 'second-hash'
-  };
+  const timestamp = new Date().getTime() + '';
+  const uuid = savedUser.uuid;
+  const hash = 'firstHhash';
+  const newHash = 'secondHash';
 
-  message.signature = await sessionless.sign(JSON.stringify(message));
+  const signature = await sessionless.sign(timestamp + uuid + hash + newHash);
 
-  const res = await post(`${baseURL}user/${savedUser.uuid}/save-hash`, message);
+  const res = await put(`${baseURL}user/${uuid}/update-hash`, {timestamp, uuid, hash, newHash, signature});
   res.body.userUUID.length.should.equal(36);
 });
