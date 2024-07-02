@@ -15,21 +15,23 @@ import app.planentnine.springcontinuebee.application.port.incoming.UpdateHashUse
 import app.planentnine.springcontinuebee.application.port.incoming.VerifyHashUseCase;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
 
-@Controller("/user")
+@RestController
+@RequestMapping("/user")
 public class UserController {
     
     private final CreateUserUseCase createUserUseCase;
@@ -54,7 +56,7 @@ public class UserController {
         this.messageMapper = messageMapper;
     }
     
-    @PutMapping("/create")
+    @PostMapping("/create")
     public ResponseEntity<Object> createUser(@RequestBody RestCreateUserDto createUserDto) {
         try {
             RestUserDto userDto = RestUserDto.builder()
@@ -66,7 +68,7 @@ public class UserController {
             
             User user = createUserUseCase.createUser(messageMapper.map(createUserDto), userDtoMapper.map(userDto));
             Map<String, String> responseMap = new HashMap<>();
-            responseMap.put("userUuid", user.userUuid().toString());
+            responseMap.put("userUuid", user.userUUID().toString());
             return ResponseEntity.accepted().body(responseMap);
         } catch (ValidationException e) {
             return ResponseEntity.badRequest().body(e.getErrors());
@@ -97,10 +99,10 @@ public class UserController {
         }
     }
     
-    @PostMapping("/update-hash")
+    @PutMapping("/update-hash")
     public ResponseEntity<Object> updateHash(@RequestBody RestUpdateHashDto updateHashDto) {
         if (updateHashUseCase.updateHash(messageMapper.map(updateHashDto), updateHashDto.newHash())) {
-            return ResponseEntity.accepted().body(updateHashDto.userUuid().toString());
+            return ResponseEntity.accepted().body(updateHashDto.userUUID().toString());
         } else {
             return ResponseEntity.badRequest().body("Bad Request");
         }
