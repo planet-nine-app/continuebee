@@ -36,13 +36,14 @@ flowchart TD
 It doesn't get much CRUDier than this API:
 
 <details>
- <summary><code>PUT</code> <code><b>/user/create</b></code> <code>Creates a new user if pubKey does not exist, and returns existing uuid if it does.</code></summary>
+ <summary><code>POST</code> <code><b>/user/create</b></code> <code>Creates a new user if pubKey does not exist, and returns existing uuid if it does.
+signature message is: timestamp + pubKey + hash</code></summary>
 
 ##### Parameters
 
 > | name         |  required     | data type               | description                                                           |
 > |--------------|-----------|-------------------------|-----------------------------------------------------------------------|
-> | publicKey    |  true     | string (hex)            | the publicKey of the user's keypair  |
+> | pubKey    |  true     | string (hex)            | the publicKey of the user's keypair  |
 > | timestamp    |  true     | string                  | in a production system timestamps prevent replay attacks  |
 > | hash         |  true     | string                  | the state hash to save for the user
 > | signature    |  true     | string (signature)      | the signature from sessionless for the message  |
@@ -58,13 +59,13 @@ It doesn't get much CRUDier than this API:
 ##### Example cURL
 
 > ```javascript
->  curl -X PUT -H "Content-Type: application/json" -d '{"publicKey": "key", "timestamp": "now", "signature": "sig"}' https://www.continuebee.com/user/create
+>  curl -X PUT -H "Content-Type: application/json" -d '{"pubKey": "key", "timestamp": "now", "signature": "sig"}' https://www.continuebee.com/user/create
 > ```
 
 </details>
 
 <details>
- <summary><code>GET</code> <code><b>/user/:uuid?timestamp=<timestamp>&hash=<hash>&signature=<signature></b></code> <code>Returns whether last saved hash matches sent hash</code></summary>
+ <summary><code>GET</code> <code><b>/user/:uuid?timestamp=<timestamp>&hash=<hash>&signature=<signature of (timestamp + uuid + hash)></b></code> <code>Returns whether last saved hash matches sent hash</code></summary>
 
 ##### Parameters
 
@@ -91,15 +92,17 @@ It doesn't get much CRUDier than this API:
 </details>
 
 <details>
-  <summary><code>POST</code> <code><b>/user/:uuid/save-hash</b></code> <code>Returns whether last saved hash matches sent hash</code></summary>
+  <summary><code>PUT</code> <code><b>/user/:uuid/save-hash</b></code> <code>Returns whether last saved hash matches sent hash.
+signature message is:  timestamp + pubkey + hash + newHash</code></summary>
 
 ##### Parameters
 
 > | name         |  required     | data type               | description                                                           |
 > |--------------|-----------|-------------------------|-----------------------------------------------------------------------|
 > | timestamp    |  true     | string                  | in a production system timestamps prevent replay attacks  |
-> | oldHash      |  true     | string                  | the old hash to replace
-> | hash         |  true     | string                  | the state hash saved client side
+> | userUUID     |  true     | string                  | the user's uuid
+> | hash         |  true     | string                  | the old hash to replace
+> | newHash      |  true     | string                  | the state hash saved client side
 > | signature    |  true     | string (signature)      | the signature from sessionless for the message  |
 
 
@@ -113,25 +116,35 @@ It doesn't get much CRUDier than this API:
 ##### Example cURL
 
 > ```javascript
->  curl -X POST -H "Content-Type: application/json" -d '{"timestamp": "right now", "hash": "hash", "signature": "signature"}' https://www.continuebee.com/user/<uuid>/save-hash
+>  curl -X POST -H "Content-Type: application/json" -d '{"timestamp": "right now", "userUUID": "uuid", "hash": "hash", "newHash": "newHash", "signature": "signature"}' https://www.continuebee.com/user/update-hash
 > ```
 
 </details>
 
 <details>
-  <summary><code>DELETE</code> <code><b>/user/:uuid</b></code> <code>Deletes a uuid and pubKey</code></summary>
+  <summary><code>DELETE</code> <code><b>/user/delete</b></code> <code>Deletes a uuid and pubKey.
+signature message is: timestamp + userUUID + hash</code></summary>
+
+##### Parameters
+
+> | name         |  required     | data type               | description                                                           |
+> |--------------|-----------|-------------------------|-----------------------------------------------------------------------|
+> | timestamp    |  true     | string                  | in a production system timestamps prevent replay attacks  |
+> | userUUID     |  true     | string                  | the user's uuid
+> | hash         |  true     | string                  | the old hash to replace
+> | signature    |  true     | string (signature)      | the signature from sessionless for the message  |
 
 ##### Responses
 
 > | http code     | content-type                      | response                                                            |
 > |---------------|-----------------------------------|---------------------------------------------------------------------|
-> | `200`         | `application/json`                | `{"deleted": true}`   |
+> | `202`         | `application/json`                | empty   |
 > | `400`         | `application/json`                | `{"code":"400","message":"Bad Request"}`                            |
 
 ##### Example cURL
 
 > ```javascript
->  curl -X DELETE https://www.continuebee.com/<uuid>
+>  curl -X DELETE https://www.continuebee.com/user/delete
 > ```
 
 </details>
