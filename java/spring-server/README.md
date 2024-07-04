@@ -14,11 +14,11 @@ Content-Type: application/json
 { 
   "timestamp": 1719881098285,
   "pubKey": "028f73a2dfa092d3a676310d8625b085f2f60702498803bd124cd475287bbfa126",
-  "hash": "password",
+  "hash": "hash",
   "signature": "64724c3de2ce61bdb10945e3b53aacc8f5fab5913127158a1ac7ec08d9e996a31449953fef9c5640a440a643992d9b9232e3eda05c5ef0feac638f823d7ebd5a"
 }
 
-signature is of message timestamp + pubkey + hash ie: 1719881098285028f73a2dfa092d3a676310d8625b085f2f60702498803bd124cd475287bbfa126password
+signature is of message timestamp + pubkey + hash ie: 1719881098285028f73a2dfa092d3a676310d8625b085f2f60702498803bd124cd475287bbfa126hash
 ```
 ### Response:
 HTTP/1.1 201 Created
@@ -44,13 +44,13 @@ Content-Type: application/json
 
 ---
 ### GET
-### user/{{uuid}}?timestamp={{timestamp}}&hash={{password}}&signature={{signature of (timestamp + uuid + password)}}
+### user/{{uuid}}?timestamp={{timestamp}}&hash={{hash}}&signature={{signature of (timestamp + uuid + hash)}}
 ### Parameters:
 Query Parameters
 ```
 uuid = 3e00c9fd-6588-4b34-8e0c-daf40a8adeec
 timestamp = 1719881098285
-hash = password
+hash = hash
 signature = 64724c3de2ce61bdb10945e3b53aacc8f5fab5913127158a1ac7ec08d9e996a31449953fef9c5640a440a643992d9b9232e3eda05c5ef0feac638f823d7ebd5a
 ```
 ### Response:
@@ -89,12 +89,12 @@ Content-Type: application/json
 { 
   "timestamp": 1719881098285,
   "userUUID": "028f73a2dfa092d3a676310d8625b085f2f60702498803bd124cd475287bbfa126",
-  "hash": "password",
-  "newHash": "newPassword"
+  "hash": "hash",
+  "newHash": "newhash"
   "signature": "81fd959d0e5deb35e960ddc816b90be3cf179795cc234757c36d3776559909e05d852e8d95a79dca8a28b83b198c8c4f8f4acb6337a7cdab4f7b3144c02150aa"
 }
 
-signature is of message timestamp + pubkey + hash + newHash ie: 1719881098285028f73a2dfa092d3a676310d8625b085f2f60702498803bd124cd475287bbfa126passwordnewPassword
+signature is of message timestamp + pubkey + hash + newHash ie: 1719881098285028f73a2dfa092d3a676310d8625b085f2f60702498803bd124cd475287bbfa126hashnewhash
 ```
 ### Response:
 HTTP/1.1 202 Accepted
@@ -131,11 +131,11 @@ Content-Type: application/json
 { 
   "timestamp": 1719881098285,
   "userUUID": "028f73a2dfa092d3a676310d8625b085f2f60702498803bd124cd475287bbfa126",
-  "hash": "password",
+  "hash": "hash",
   "signature": "7455581755ebce4a07fe7bb1a8825dd21b946e9e7de87456a0d450e1877c98fae849714bdd986810732b8157a91e5d5e81233a33ae51fe238713ee18fce7b91d"
 }
 
-signature is of message timestamp + pubkey + hash ie: 1719881098285028f73a2dfa092d3a676310d8625b085f2f60702498803bd124cd475287bbfa126password
+signature is of message timestamp + pubkey + hash ie: 1719881098285028f73a2dfa092d3a676310d8625b085f2f60702498803bd124cd475287bbfa126hash
 ```
 ### Response:
 HTTP/1.1 200 Accepted
