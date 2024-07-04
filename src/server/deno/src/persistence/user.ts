@@ -44,3 +44,8 @@ export const getUserByAssociatedKey = async (uuid) => {
   const associatedUser = await kv.get([uuid]);
   return associatedUser.value;
 };
+
+export const deleteUser = async (user): boolean => {
+  await kv.delete([user.uuid]);
+  return true;
+};
