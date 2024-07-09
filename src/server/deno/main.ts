@@ -21,6 +21,7 @@ const register = async (context): object => {
   const uuid = sessionless.generateUUID();
   await saveUser(uuid, payload.pubKey, payload.hash);
 
+  context.response.status = 201;
   context.response.body = { userUUID: uuid };
 };
 
@@ -45,7 +46,7 @@ const checkHash = async (context): object => {
   }
 
   if(user.hash === params.get('hash')) {
-    context.response.status = 202;
+    context.response.status = 200;
     return;
   } 
   context.response.body = {
@@ -95,7 +96,7 @@ const deleteSavedUser = async (context): object => {
   }
 
   const deleted = await deleteUser(user);
-  context.response.status = deleted ? 202 : 400;
+  context.response.status = deleted ? 200 : 400;
 };
 
 const router = new Router();

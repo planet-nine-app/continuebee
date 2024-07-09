@@ -23,28 +23,6 @@ export const getValue = async (uuid)  => {
   return await kv.get([uuid, 'value']);
 };
 
-export const associateKey = async (user, uuid, pubKey) => {
-  await kv.set([user.uuid], {
-    pubKey: user.pubKey,
-    associatedKeys: {
-      associatedUser: {
-        uuid,
-        pubKey
-      }
-    }
-  });
-  await kv.set([uuid], {
-    uuid,
-    pubKey,
-    associatedUUID: user.uuid
-  });
-};
-
-export const getUserByAssociatedKey = async (uuid) => {
-  const associatedUser = await kv.get([uuid]);
-  return associatedUser.value;
-};
-
 export const deleteUser = async (user): boolean => {
   await kv.delete([user.uuid]);
   return true;

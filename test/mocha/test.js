@@ -56,7 +56,7 @@ it('should check hash', async () => {
   const signature = await sessionless.sign(timestamp + uuid + hash);
 
   const res = await get(`${baseURL}user/${uuid}?timestamp=${timestamp}&hash=${hash}&signature=${signature}`);
-  res.status.should.equal(202);
+  res.status.should.equal(200);
 });
 
 it('should save hash', async () => {
@@ -83,5 +83,5 @@ it('should delete a user', async () => {
 
 
   const res = await _delete(`${baseURL}user/delete`, payload);
-  res.status.should.equal(202);
+  res.status.should.equal(200);
 });
