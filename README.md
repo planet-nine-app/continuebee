@@ -92,7 +92,8 @@ signature message is: timestamp + pubKey + hash</code></summary>
 </details>
 
 <details>
-  <summary><code>POST</code> <code><b>/user/:uuid/save-message</b></code> <code>Returns whether last saved message matches sent message</code></summary>
+  <summary><code>PUT</code> <code><b>/user/:uuid/save-hash</b></code> <code>Returns whether last saved hash matches sent hash.
+signature message is:  timestamp + pubkey + hash + newHash</code></summary>
 
 ##### Parameters
 
