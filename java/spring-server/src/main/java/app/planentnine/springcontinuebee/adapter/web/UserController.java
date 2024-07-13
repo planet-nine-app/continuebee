@@ -90,7 +90,7 @@ public class UserController {
             
             boolean verified = verifyHashUseCase.verifyHash(messageMapper.map(verifyHashDto));
             if (verified) {
-                return ResponseEntity.accepted().body(uuid.toString());
+                return ResponseEntity.ok().body(uuid.toString());
             } else {
                 return ResponseEntity.badRequest().body("Bad Request");
             }
@@ -113,7 +113,7 @@ public class UserController {
         boolean deleted = deleteUserUseCase.deleteUser(messageMapper.map(deleteUserDto));
         
         if (deleted) {
-            return ResponseEntity.accepted().body(true);
+            return ResponseEntity.ok().body(true);
         } else {
             return ResponseEntity.badRequest().body("Bad Request");
         }
