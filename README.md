@@ -1,6 +1,6 @@
 # Continue Bee
 
-*Continue Bee* (50 points to anyone who gets the reference) is a lightweight implementation of the [Sessionless][sessionless] authentication protocol, which allows implementers to save a message of client state, and then check that state when a client returns.
+*Continue Bee* (50 points to anyone who gets the reference) is a lightweight implementation of the [Sessionless][sessionless] authentication protocol, which allows implementers to save a hash of client state, and then check that state when a client returns.
 
 ## Overview
 
@@ -16,7 +16,7 @@ sequenceDiagram
     Server->>+Client: Sends userUUID
     Client->>+Server: Sends State Hash
     Server->>+DB: Saves State Hash
-    Client->>+Server: Returns and re-sends state message
+    Client->>+Server: Returns and re-sends state hash
     Server->>+DB: Checks State Hash
     Server->>+Client: Returns OK/not OK
 ```
@@ -36,14 +36,16 @@ flowchart TD
 It doesn't get much CRUDier than this API:
 
 <details>
- <summary><code>PUT</code> <code><b>/user/create</b></code> <code>Creates a new user if pubKey does not exist, and returns existing uuid if it does.</code></summary>
+ <summary><code>POST</code> <code><b>/user/create</b></code> <code>Creates a new user if pubKey does not exist, and returns existing uuid if it does.
+signature message is: timestamp + pubKey + hash</code></summary>
 
 ##### Parameters
 
 > | name         |  required     | data type               | description                                                           |
 > |--------------|-----------|-------------------------|-----------------------------------------------------------------------|
-> | publicKey    |  true     | string (hex)            | the publicKey of the user's keypair  |
+> | pubKey    |  true     | string (hex)            | the publicKey of the user's keypair  |
 > | timestamp    |  true     | string                  | in a production system timestamps prevent replay attacks  |
+> | hash         |  true     | string                  | the state hash to save for the user
 > | signature    |  true     | string (signature)      | the signature from sessionless for the message  |
 
 
@@ -57,20 +59,20 @@ It doesn't get much CRUDier than this API:
 ##### Example cURL
 
 > ```javascript
->  curl -X PUT -H "Content-Type: application/json" -d '{"publicKey": "key", "timestamp": "now", "signature": "sig"}' https://www.continuebee.com/user/create
+>  curl -X PUT -H "Content-Type: application/json" -d '{"pubKey": "key", "timestamp": "now", "signature": "sig"}' https://www.continuebee.com/user/create
 > ```
 
 </details>
 
 <details>
- <summary><code>GET</code> <code><b>/user/:uuid?timestamp=<timestamp>&message=<message>&signature=<signature></b></code> <code>Returns whether last saved message matches sent message</code></summary>
+ <summary><code>GET</code> <code><b>/user/:uuid?timestamp=<timestamp>&hash=<hash>&signature=<signature of (timestamp + uuid + hash)></b></code> <code>Returns whether last saved hash matches sent hash</code></summary>
 
 ##### Parameters
 
 > | name         |  required     | data type               | description                                                           |
 > |--------------|-----------|-------------------------|-----------------------------------------------------------------------|
 > | timestamp    |  true     | string                  | in a production system timestamps prevent replay attacks  |
-> | message         |  true     | string                  | the state message saved client side
+> | hash         |  true     | string                  | the state hash saved client side
 > | signature    |  true     | string (signature)      | the signature from sessionless for the message  |
 
 
@@ -79,12 +81,12 @@ It doesn't get much CRUDier than this API:
 > | http code     | content-type                      | response                                                            |
 > |---------------|-----------------------------------|---------------------------------------------------------------------|
 > | `200`         | `application/json`                | `{"userUUID": <uuid>}`   |
-> | `400`         | `application/json`                | `{"code":"400","message":"Bad Request"}`                            |
+> | `406`         | `application/json`                | `{"code":"406","message":"Not acceptable"}`                            |
 
 ##### Example cURL
 
 > ```javascript
->  curl -X GET -H "Content-Type: application/json" https://www.continuebee.com/<uuid>?timestamp=123&message=message&signature=signature 
+>  curl -X GET -H "Content-Type: application/json" https://www.continuebee.com/<uuid>?timestamp=123&hash=hash&signature=signature 
 > ```
 
 </details>
@@ -97,7 +99,9 @@ It doesn't get much CRUDier than this API:
 > | name         |  required     | data type               | description                                                           |
 > |--------------|-----------|-------------------------|-----------------------------------------------------------------------|
 > | timestamp    |  true     | string                  | in a production system timestamps prevent replay attacks  |
-> | message         |  true     | string                  | the state message saved client side
+> | userUUID     |  true     | string                  | the user's uuid
+> | hash         |  true     | string                  | the old hash to replace
+> | newHash      |  true     | string                  | the state hash saved client side
 > | signature    |  true     | string (signature)      | the signature from sessionless for the message  |
 
 
@@ -111,25 +115,35 @@ It doesn't get much CRUDier than this API:
 ##### Example cURL
 
 > ```javascript
->  curl -X POST -H "Content-Type: application/json" -d '{"timestamp": "right now", "message": "message", "signature": "signature"}' https://www.continuebee.com/user/<uuid>/save-message
+>  curl -X POST -H "Content-Type: application/json" -d '{"timestamp": "right now", "userUUID": "uuid", "hash": "hash", "newHash": "newHash", "signature": "signature"}' https://www.continuebee.com/user/update-hash
 > ```
 
 </details>
 
 <details>
-  <summary><code>DELETE</code> <code><b>/user/:uuid</b></code> <code>Deletes a uuid and pubKey</code></summary>
+  <summary><code>DELETE</code> <code><b>/user/delete</b></code> <code>Deletes a uuid and pubKey.
+signature message is: timestamp + userUUID + hash</code></summary>
+
+##### Parameters
+
+> | name         |  required     | data type               | description                                                           |
+> |--------------|-----------|-------------------------|-----------------------------------------------------------------------|
+> | timestamp    |  true     | string                  | in a production system timestamps prevent replay attacks  |
+> | userUUID     |  true     | string                  | the user's uuid
+> | hash         |  true     | string                  | the old hash to replace
+> | signature    |  true     | string (signature)      | the signature from sessionless for the message  |
 
 ##### Responses
 
 > | http code     | content-type                      | response                                                            |
 > |---------------|-----------------------------------|---------------------------------------------------------------------|
-> | `200`         | `application/json`                | `{"deleted": true}`   |
+> | `202`         | `application/json`                | empty   |
 > | `400`         | `application/json`                | `{"code":"400","message":"Bad Request"}`                            |
 
 ##### Example cURL
 
 > ```javascript
->  curl -X DELETE https://www.continuebee.com/<uuid>
+>  curl -X DELETE https://www.continuebee.com/user/delete
 > ```
 
 </details>
@@ -140,7 +154,7 @@ One of the biggest benefits of Sessionless is that it doesn't need to store any 
 This means all of the data Continue Bee cares about can all be saved in a single table/collection/whatever-other-construct-some-database-may-have.
 And that table looks like:
 
-| uuid  | pubKey | message
+| uuid  | pubKey | hash
 :-------|:-------|:-----
  string | string | string
 
@@ -155,9 +169,9 @@ To do so they should implement the following methods:
 
 `createUser()` - Should generate keys, save them appropriately client side, and PUT to /user/create.
 
-`saveHash(message)` - Should POST the passed in message to /user/:uuid/save-message.
+`saveHash(hash)` - Should POST the passed in hash to /user/:uuid/save-hash.
 
-`checkHash(message)` - Should GET to check the saved message on the client against the saved message on the server via /user/:uuid?timestamp=timestamp&message=message&signature=signature.
+`checkHash(hash)` - Should GET to check the saved hash on the client against the saved hash on the server via /user/:uuid?timestamp=timestamp&hash=hash&signature=signature.
 
 `deleteUser(uuid)` - Should DELETE a user by calling /user/:uuid.
 
