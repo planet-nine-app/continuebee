@@ -28,6 +28,8 @@ repositories {
 }
 
 ext {
+    sessionlessVersion = '0.1.0'
+    bouncyCastleVersion = '1.77'
     liquibaseVersion = '4.24.0'
     lombokVersion = '1.18.32'
     mybatisSpringBootVersion = '3.0.2'
@@ -36,11 +38,8 @@ ext {
 }
 
 dependencies {
-    //Remove with Sessionless
-    implementation 'org.bouncycastle:bcprov-jdk18on:1.77'
-    implementation 'commons-codec:commons-codec:1.15'
-    implementation 'org.apache.commons:commons-lang3:3.0'
-    //
+    implementation "com.all-thing.libs.sessionless:sessionless:${sessionlessVersion}"
+    implementation "org.bouncycastle:bcprov-jdk18on:${bouncyCastleVersion}"
     implementation "org.liquibase:liquibase-core:${liquibaseVersion}"
     implementation "org.mybatis.spring.boot:mybatis-spring-boot-starter:${mybatisSpringBootVersion}"
     implementation "org.springframework.boot:spring-boot-starter-web:${springBootVersion}"
