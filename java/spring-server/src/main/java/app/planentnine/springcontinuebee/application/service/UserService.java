@@ -8,12 +8,12 @@ import app.planentnine.springcontinuebee.application.port.incoming.DeleteUserUse
 import app.planentnine.springcontinuebee.application.port.incoming.UpdateHashUseCase;
 import app.planentnine.springcontinuebee.application.port.incoming.VerifyHashUseCase;
 import app.planentnine.springcontinuebee.application.port.outgoing.CreateUserIfNotExistsPort;
-import app.planentnine.springcontinuebee.application.encryption.Sessionless;
 import app.planentnine.springcontinuebee.application.port.outgoing.DeleteUserByUuidPort;
 import app.planentnine.springcontinuebee.application.port.outgoing.LoadUserByUserUuidPort;
 import app.planentnine.springcontinuebee.application.port.outgoing.UpdateHashPort;
 import app.planentnine.springcontinuebee.application.validation.CreateUserValidator;
 import app.planentnine.springcontinuebee.application.validation.MessageFormatValidator;
+import com.allthing.libs.sessionless.Sessionless;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
