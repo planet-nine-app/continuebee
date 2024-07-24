@@ -2,7 +2,7 @@ package app.planentnine.springcontinuebee.application.validation;
 
 import app.planentnine.springcontinuebee.application.domain.Message;
 import app.planentnine.springcontinuebee.application.domain.exception.ValidationException;
-import app.planentnine.springcontinuebee.application.encryption.Sessionless;
+import com.allthing.libs.sessionless.Sessionless;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
