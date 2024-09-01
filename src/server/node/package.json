@@ -1,5 +1,5 @@
 {
-  "name": "joan",
+  "name": "continuebee",
   "version": "0.0.1",
   "description": "Joan is a public miniservice for handling user credentials",
   "main": "server.js",
@@ -10,8 +10,8 @@
   "author": "planetnineisaspaceship",
   "license": "MIT",
   "dependencies": {
+    "cors": "^2.8.5",
     "express": "^4.19.2",
-    "redis": "^4.7.0",
     "sessionless-node": "^0.10.1"
   }
 }
