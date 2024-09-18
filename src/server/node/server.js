@@ -4,6 +4,7 @@ import cors from 'cors';
 import user from './src/user/user.js';
 import fount from 'fount-js';
 import sessionless from 'sessionless-node';
+import db from './src/persistence/db.js';
 
 const app = express();
 app.use(cors());
