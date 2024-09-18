@@ -12,6 +12,7 @@
   "dependencies": {
     "cors": "^2.8.5",
     "express": "^4.19.2",
+    "fount-js": "^0.0.1",
     "sessionless-node": "^0.10.1"
   }
 }

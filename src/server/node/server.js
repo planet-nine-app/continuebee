@@ -2,11 +2,36 @@ import config from './config/local.js';
 import express from 'express';
 import cors from 'cors';
 import user from './src/user/user.js';
+import fount from 'fount-js';
 import sessionless from 'sessionless-node';
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+const SUBDOMAIN = process.env.SUBDOMAIN || 'dev';
+fount.baseURL = `${SUBDOMAIN}.fount.allyabase.com`;
+
+const repeat = (func) => {
+  setTimeout(func, 2000);
+};
+
+const bootstrap = async () => {
+  try {
+    await user.getUserByUUID('continuebee');
+    sessionless.getKeys = db.getKeys;
+  } catch(err) {
+    const fountUUID = await fount.createUser(db.saveKeys, db.getKeys);
+    const continuebee = {
+      uuid: 'continuebee',
+      fountUUID
+    };
+    await db.saveUser(continuebee);
+    repeat(bootstrap);
+  }
+};
+
+repeat(bootstrap);
 
 app.use((req, res, next) => {
   const requestTime = +req.query.timestamp || +req.body.timestamp;
