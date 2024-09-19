@@ -19,15 +19,23 @@ const repeat = (func) => {
 
 const bootstrap = async () => {
   try {
-    await user.getUserByUUID('continuebee');
-    sessionless.getKeys = db.getKeys;
-  } catch(err) {
-    const fountUUID = await fount.createUser(db.saveKeys, db.getKeys);
+    const { fountUUID = uuid, fountPubKey = pubKey } = await fount.createUser(db.saveKeys, db.getKeys);
+    const bdoUUID = await bdo.createUser(bdoHash, () => {}, db.getKeys);
+    const spellbook = await bdo.getBDO(bdoUUID, bdoHash, fountPubKey);
     const continuebee = {
       uuid: 'continuebee',
-      fountUUID
+      fountUUID,
+      fountPubKey,
+      bdoUUID,
+      spellbook
     };
+
+    if(!continuebee.fountUUID || !addie.bdoUUID || !spellbook) {
+      throw new Error('bootstrap failed');
+    }
+
     await db.saveUser(continuebee);
+  } catch(err) {
     repeat(bootstrap);
   }
 };
