@@ -15,7 +15,7 @@ const MAGIC = {
 
     const spellbook = await db.get('spellbook');
     const nextIndex = spellbook.destinations.indexOf(spellbook.destinations.find(($) => $.stopName === 'continuebee'));
-    const nextDestination = spellbook.destinations[nextIndex].stopURL;
+    const nextDestination = spellbook.destinations[nextIndex].stopURL + '/' + spell.spellName;
 
     const res = await MAGIC.forwardSpell(spell, nextDestination);
     const body = await res.json();
