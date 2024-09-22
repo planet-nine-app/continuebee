@@ -11,7 +11,7 @@ app.use(cors());
 app.use(express.json());
 
 const SUBDOMAIN = process.env.SUBDOMAIN || 'dev';
-fount.baseURL = `${SUBDOMAIN}.fount.allyabase.com`;
+fount.baseURL = process.env.LOCALHOST ? 'http://localhost:3006/' : `${SUBDOMAIN}.fount.allyabase.com/`;
 
 const repeat = (func) => {
   setTimeout(func, 2000);
@@ -19,13 +19,13 @@ const repeat = (func) => {
 
 const bootstrap = async () => {
   try {
-    const { fountUUID = uuid, fountPubKey = pubKey } = await fount.createUser(db.saveKeys, db.getKeys);
+    const fountUser = await fount.createUser(db.saveKeys, db.getKeys);
     const bdoUUID = await bdo.createUser(bdoHash, () => {}, db.getKeys);
     const spellbook = await bdo.getBDO(bdoUUID, bdoHash, fountPubKey);
     const continuebee = {
       uuid: 'continuebee',
-      fountUUID,
-      fountPubKey,
+      fountUUID: fountUser.uuid,
+      fountPubKey: fountUser.pubKey,
       bdoUUID,
       spellbook
     };
