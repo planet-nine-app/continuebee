@@ -10,12 +10,12 @@ const fountURL = 'http://localhost:3006/';
 
 const MAGIC = {
   joinup: async (spell) => {
-    const gateway = await gatewayForSpell(spell.spellName);
+    const gateway = await MAGIC.gatewayForSpell(spell.spellName);
     spell.gateways.push(spell);
 
     const spellbook = await db.get('spellbook');
     const nextIndex = spellbook.destinations.indexOf(spellbook.destinations.find(($) => $.stopName === 'continuebee'));
-    const nextDestination = spellbook.destinations[nextIndex].stopURL + '/' + spell.spellName;
+    const nextDestination = spellbook.destinations[nextIndex].stopURL + spell.spellName;
 
     const res = await MAGIC.forwardSpell(spell, nextDestination);
     const body = await res.json();
@@ -43,7 +43,7 @@ const MAGIC = {
       throw new Error('missing coordinating key');
     }
 
-    const gateway = await gatewayForSpell(spell.spellName);
+    const gateway = await MAGIC.gatewayForSpell(spell.spellName);
     gateway.coordinatingKey = {
       serviceURL: 'http://localhost:2999/', // Once hedy is built, this will be dynamic
       uuid: spell.casterUUID,
@@ -60,7 +60,7 @@ const MAGIC = {
     const continuebee = await db.getUser('continuebee');
     const gateway = {
       timestamp = new Date().getTime() + '',
-      uuid: continuebee.uuid, 
+      uuid: continuebee.fountUUID, 
       minimumCost: 20,
       ordinal: continuebee.ordinal
     };      

@@ -1,6 +1,6 @@
 {
   "name": "continuebee-js",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "JavaScript sdk for Continuebee",
   "main": "continuebee.js",
   "scripts": {

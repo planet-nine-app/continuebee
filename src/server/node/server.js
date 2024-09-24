@@ -1,8 +1,10 @@
 import config from './config/local.js';
 import express from 'express';
 import cors from 'cors';
+import { createHash } from 'node:crypto';
 import user from './src/user/user.js';
 import fount from 'fount-js';
+import bdo from 'bdo-js';
 import sessionless from 'sessionless-node';
 import db from './src/persistence/db.js';
 
@@ -12,6 +14,11 @@ app.use(express.json());
 
 const SUBDOMAIN = process.env.SUBDOMAIN || 'dev';
 fount.baseURL = process.env.LOCALHOST ? 'http://localhost:3006/' : `${SUBDOMAIN}.fount.allyabase.com/`;
+bdo.baseURL = process.env.LOCALHOST ? 'http://localhost:3003/' : `${SUBDOMAIN}.bdo.allyabase.com/`;
+
+const bdoHashInput = `${SUBDOMAIN}continuebee`;
+
+const bdoHash = createHash('sha256').update(bdoHashInput).digest('hex');
 
 const repeat = (func) => {
   setTimeout(func, 2000);
@@ -20,22 +27,23 @@ const repeat = (func) => {
 const bootstrap = async () => {
   try {
     const fountUser = await fount.createUser(db.saveKeys, db.getKeys);
-    const bdoUUID = await bdo.createUser(bdoHash, () => {}, db.getKeys);
-    const spellbook = await bdo.getBDO(bdoUUID, bdoHash, fountPubKey);
+    const bdoUUID = await bdo.createUser(bdoHash, {}, () => {}, db.getKeys);
+    const spellbooks = await bdo.getSpellbooks(bdoUUID, bdoHash);
     const continuebee = {
       uuid: 'continuebee',
       fountUUID: fountUser.uuid,
       fountPubKey: fountUser.pubKey,
       bdoUUID,
-      spellbook
+      spellbooks
     };
 
-    if(!continuebee.fountUUID || !addie.bdoUUID || !spellbook) {
+    if(!continuebee.fountUUID || !continuebee.bdoUUID || !spellbooks) {
       throw new Error('bootstrap failed');
     }
 
-    await db.saveUser(continuebee);
+    await db.putUser(continuebee);
   } catch(err) {
+console.warn(err);
     repeat(bootstrap);
   }
 };
