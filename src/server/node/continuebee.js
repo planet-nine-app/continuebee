@@ -81,7 +81,7 @@ console.log('putting user');
     };
 
     const foundUser = await user.putUser(userToPut);
-console.log(foundUser);
+console.log('sending user', foundUser);
     res.send(foundUser);
   } catch(err) {
     res.status(404);
@@ -98,6 +98,8 @@ app.get('/user/:uuid', async (req, res) => {
     const message = timestamp + uuid + hash;
    
     const foundUser = await user.getUser(uuid);
+
+console.log('foundUser', foundUser);
 
     if(!signature || !sessionless.verifySignature(signature, message, foundUser.pubKey)) {
       res.status(403);
