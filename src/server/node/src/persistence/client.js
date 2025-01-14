@@ -1,10 +1,9 @@
 import { promises as fs } from 'fs';
 import path from 'path';
-import { default as config } from '../../config/default.js';
 
-const keyDepth = config.keyDepth || 2;
-const delimiter = config.delimiter || '_';
-const basePath = config.basePath || 'data';
+const keyDepth = 2;
+const delimiter = '_';
+const basePath = 'data/continuebee';
 
 const filePathForKey = async (key) => {
   let mutatingKey = key.replace(':', delimiter);

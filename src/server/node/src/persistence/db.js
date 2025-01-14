@@ -1,4 +1,3 @@
-import config from '../../config/local.js';
 import { createClient } from './client.js';
 import sessionless from 'sessionless-node';
   
