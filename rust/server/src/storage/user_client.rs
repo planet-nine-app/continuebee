@@ -91,6 +91,7 @@ impl UserCLient {
 mod tests {
     use super::*;
     use axum::http::Uri;
+    use tokio::io::AsyncWriteExt;
 
     #[tokio::test]
     async fn test_get_user() {
@@ -98,16 +99,40 @@ mod tests {
         let dir_path = format!("{}/get_user", current_directory.display());
         let uri = Uri::builder().path_and_query(dir_path.clone()).build().unwrap();
 
+        let initial_uuid = "uuid";
+        let file_path = format!("{}/user:{}", dir_path, initial_uuid);
         let user_client = UserCLient::new(uri);
 
-        match user_client.client {
+        match user_client.clone().client {
             Client::FileStorageClient { storage_client } => {
                 storage_client.create_storage_dir().await.expect("Failed to create storage directory");
             },
             _ => assert!(false)
         }
 
+        // confirm file doesn't exist before
+        let file_exists = tokio::fs::metadata(file_path.clone()).await.is_ok();
+        assert!(!file_exists);
+
         let mut user = User::new("pub_key".to_string(), "hash".to_string());
-        user.uuid = "uuid".to_string();
+        user.uuid = initial_uuid.to_string();
+
+        let data= serde_json::to_value(user.clone()).expect("Failed to serialize");
+
+        // write user to file with fs::write
+        let mut file = match tokio::fs::File::create_new(file_path).await {
+            Ok(file) => file,
+            Err(e) => panic!("Failed to write to file: {}", e),
+        };
+
+        assert!(file.write_all(serde_json::to_string(&data).expect("Failed to serialize to string").as_bytes()).await.is_ok());
+
+        match user_client.clone().get_user(initial_uuid).await {
+            Some(result) => assert_eq!(result, user.clone()),
+            None => assert!(false)
+        };
+
+        // clean up
+        tokio::fs::remove_dir_all(dir_path.clone()).await.expect("Failed to remove directory");
     }
 }
