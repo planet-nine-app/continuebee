@@ -32,6 +32,6 @@ impl ServerConfig {
     }
 
     pub fn server_url(self) -> String {
-        format!("http://{}:{}", self.subdomain, self.port)
+        format!("{}:{}", self.subdomain, self.port)
     }
 }
