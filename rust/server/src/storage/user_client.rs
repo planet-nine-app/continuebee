@@ -14,6 +14,7 @@ impl UserCLient {
     pub fn new(storage_uri: Uri) -> Self {
         Self { client: Client::new(storage_uri) }
     }
+
     fn key(uuid: &str) -> String {
         format!("user:{}", uuid)
     }

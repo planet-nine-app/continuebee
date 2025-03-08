@@ -4,7 +4,7 @@ use anyhow::anyhow;
 use axum::{extract::State, http::StatusCode, Json};
 use sessionless::{secp256k1::PublicKey, Sessionless, Signature};
 
-use crate::config::AppState;
+use crate::{config::AppState, storage::User};
 
 use super::{CreateUserRequest, Response};
 
@@ -24,15 +24,15 @@ pub async fn create_user_handler(
             }
         };
 
-        match sessionless.verify(message, &pub_key, &sig) {
-            Ok(()) => {},
-            Err(_) => {
-                return Json(Response::auth_error());
-            }
-        };
+        if sessionless.verify(message, &pub_key, &sig).is_err() {
+            return Json(Response::auth_error());
+        }
 
-        // TODO: 
-        return Json(Response::success("todo".to_string()))
+        let user_to_put = User::new(body.pubKey.clone(), body.hash.clone());
+        match data.user_client.clone().put_user(&user_to_put).await {
+            Ok(user ) => Json(Response::success(user.uuid)),
+            Err(_) => Json(Response::server_error("Failed to put user".to_string()))
+        }
     } else {
         return Json(Response::auth_error());
     }

@@ -15,4 +15,8 @@ impl Response {
     pub fn success(user_uuid: String) -> Self {
         return Response::User { user_uuid: user_uuid }
     }
+
+    pub fn server_error(message: String) -> Self {
+        return Response::Error { code: StatusCode::INTERNAL_SERVER_ERROR.as_u16(), message: message };
+    }
 }
