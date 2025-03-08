@@ -1,13 +1,13 @@
 use axum::http::Uri;
 use sessionless::Sessionless;
 
-use super::{Client, User};
+use super::{Client, StorageClient, User};
 
 
 
 #[derive(Debug, Clone)]
 pub struct UserCLient {
-    client: Client
+    pub client: Client
 }
 
 impl UserCLient {
@@ -19,8 +19,12 @@ impl UserCLient {
         format!("user:{}", uuid)
     }
 
+    pub fn storage_client(self) -> Box<dyn StorageClient> {
+        self.client.storage_client()
+    }
+
     pub async fn get_user(self, uuid: &str) -> Option<User> {
-        match self.client.storage_client().get(UserCLient::key(uuid).as_str()).await {
+        match self.storage_client().get(UserCLient::key(uuid).as_str()).await {
             Some(value) => {
                 match serde_json::from_value(value) {
                     Ok(user) => Some(user),
@@ -37,7 +41,7 @@ impl UserCLient {
         user.uuid = uuid;
 
         if let Ok(value) = serde_json::to_value(user.clone()) {
-            match self.client.storage_client().set(UserCLient::key(&user.uuid).as_str(), value).await {
+            match self.storage_client().set(UserCLient::key(&user.uuid).as_str(), value).await {
                 Ok(_) => {
                     return Ok(user.clone());
                 },
@@ -58,12 +62,12 @@ impl UserCLient {
     }
 
     pub async fn delete_user(self, uuid: &str) -> bool {
-        self.client.storage_client().delete(UserCLient::key(uuid).as_str()).await
+        self.storage_client().delete(UserCLient::key(uuid).as_str()).await
     }
 
     pub async fn save_keys(self, keys: Vec<&str>) -> anyhow::Result<()> {
         if let Ok(value) = serde_json::to_value(keys) {
-            self.client.storage_client().set("keys", value).await?;
+            self.storage_client().set("keys", value).await?;
             Ok(())
         } else {
             Err(anyhow::Error::msg("Failed to set keys"))
@@ -71,7 +75,7 @@ impl UserCLient {
     }
 
     pub async fn get_keys(self) -> Vec<String> {
-        match self.client.storage_client().get("keys").await {
+        match self.storage_client().get("keys").await {
             Some(value) => {
                 match serde_json::from_value(value) {
                     Ok(result) => result,
@@ -80,5 +84,30 @@ impl UserCLient {
             },
             None => vec![]
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use axum::http::Uri;
+
+    #[tokio::test]
+    async fn test_get_user() {
+        let current_directory = std::env::current_dir().expect("Failed to get current directory"); 
+        let dir_path = format!("{}/get_user", current_directory.display());
+        let uri = Uri::builder().path_and_query(dir_path.clone()).build().unwrap();
+
+        let user_client = UserCLient::new(uri);
+
+        match user_client.client {
+            Client::FileStorageClient { storage_client } => {
+                storage_client.create_storage_dir().await.expect("Failed to create storage directory");
+            },
+            _ => assert!(false)
+        }
+
+        let mut user = User::new("pub_key".to_string(), "hash".to_string());
+        user.uuid = "uuid".to_string();
     }
 }

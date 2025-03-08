@@ -13,5 +13,4 @@ impl User {
     pub fn new(pub_key: String, hash: String) -> Self {
         Self {uuid: "".to_string(), pub_key: pub_key, hash: hash}
     }
-
 }

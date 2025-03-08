@@ -22,7 +22,7 @@ impl Client {
         Client::NotImplementedYet {storage_client: NotImplementedYetClient {}}
     }
 
-    pub fn storage_client(self) -> Box<dyn StorageClient + Send>  { 
+    pub fn storage_client(self) -> Box<dyn StorageClient>  { 
         match self {
             Client::FileStorageClient { storage_client} => Box::new(storage_client),
             Client::NotImplementedYet { storage_client } => Box::new(storage_client)

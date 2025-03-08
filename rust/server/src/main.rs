@@ -6,7 +6,6 @@ use std::sync::Arc;
 use axum::{routing::{get, post}, Router};
 
 use config::{AppState, ServerConfig};
-use handlers::create_user_handler;
 use storage::UserCLient;
 
 
@@ -29,7 +28,7 @@ fn setup_router(server_config: &ServerConfig) -> Router {
 
     Router::new()
         .route("/heath_check", get(health_check))
-        .route("/user/create", post(create_user_handler))
+        .route("/user/create", post(handlers::create_user_handler))
         .with_state(app_state)
 }
 
