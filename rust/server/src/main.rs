@@ -3,9 +3,10 @@ mod storage;
 mod handlers;
 
 use std::sync::Arc;
-use axum::Router;
+use axum::{routing::{get, post}, Router};
 
 use config::{AppState, ServerConfig};
+use handlers::create_user_handler;
 use storage::Client;
 
 
@@ -27,5 +28,11 @@ fn setup_router(server_config: &ServerConfig) -> Router {
     });
 
     Router::new()
+        .route("/heath_check", get(health_check))
+        .route("/user/create", post(create_user_handler))
         .with_state(app_state)
+}
+
+async fn health_check() -> String {
+    return "Success".to_string();
 }

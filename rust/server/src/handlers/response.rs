@@ -1,26 +1,18 @@
-use axum::{http::StatusCode, Json};
+use axum::http::StatusCode;
+use serde::Serialize;
 
-#[derive(Debug)]
-pub struct ErrorResponse {
-    pub status_code: StatusCode,
-    pub error: String,
+#[derive(Debug, Serialize, Clone)]
+pub enum Response {
+    User { user_uuid: String },
+    Error { code: u16, message: String }
 }
 
-impl ErrorResponse {
-    pub fn new(status_code: StatusCode, error: String) -> Self {
-        ErrorResponse {
-            status_code,
-            error,
-        }
+impl Response {
+    pub fn auth_error() -> Self {
+        return Response::Error { code: StatusCode::FORBIDDEN.as_u16(), message: "Auth Error".to_string() };
     }
-}
 
-impl Into<(StatusCode, Json<serde_json::Value>)> for ErrorResponse {
-    fn into(self) -> (StatusCode, Json<serde_json::Value>) {
-        let json = serde_json::json!({
-            "error": self.error,
-        });
-
-        (self.status_code, Json(json))
+    pub fn success(user_uuid: String) -> Self {
+        return Response::User { user_uuid: user_uuid }
     }
 }
