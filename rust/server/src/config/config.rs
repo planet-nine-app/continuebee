@@ -1,6 +1,7 @@
 use std::str::FromStr;
 
 use axum::http::Uri;
+use dotenv::dotenv;
 
 
 #[derive(Debug, Clone)]
@@ -13,6 +14,8 @@ pub struct ServerConfig {
 impl ServerConfig {
 
     pub fn from_env() -> Self {
+        dotenv().ok();
+
         let subdomain = std::env::var("SUBDOMAIN").unwrap_or("localhost".to_string());
 
         let port = std::env::var("PORT").unwrap_or("3000".to_string());
