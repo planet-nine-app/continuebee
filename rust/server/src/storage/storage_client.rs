@@ -11,8 +11,8 @@ fn is_file_uri(uri: &Uri) -> bool {
 pub trait StorageClient {
     // Get a json value from the storage
     async fn get(&self, key: &str) -> Option<serde_json::Value>;
-    // Set a json value in the storage; if create is set and true, it will create the value if it doesn't exist at the location
-    async fn set(&self, key: &str, value: serde_json::Value, create: Option<bool>) -> anyhow::Result<()>;
+    // Set a json value in the storage; will create new file if it doesnt exist or overwrite otherwise
+    async fn set(&self, key: &str, value: serde_json::Value) -> anyhow::Result<()>;
     // Delete from the storage; returns true if the value was deleted
     async fn delete(&self, key: &str) -> bool;
 }

@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use axum::http::Uri;
-use tokio::io::AsyncWriteExt;
+use tokio::{fs::File, io::AsyncWriteExt};
 
 use super::StorageClient;
 
@@ -44,17 +44,16 @@ impl FileStorageClient {
 
     pub async fn write(&self, key: &str, value: serde_json::Value) -> anyhow::Result<()> {
         self.create_storage_dir().await.expect("Failed to create storage directory");
-        tokio::fs::write(self.file_path(key), serde_json::to_string(&value).expect("Failed to serialize value")).await.expect("Failed to write to file");
-        Ok(())
-    }
 
-    pub async fn write_new(&self, key: &str, value: serde_json::Value) -> anyhow::Result<()> {
-        self.create_storage_dir().await.expect("Failed to create storage directory");
-        let mut file = match tokio::fs::File::create_new(self.file_path(key)).await {
+        let file = match tokio::fs::File::create(self.file_path(key)).await {
             Ok(file) => file,
             Err(e) => return Err(e.into()),
         };
 
+        self.serialize_and_write(value, file).await
+    }
+
+    pub async fn serialize_and_write(&self, value: serde_json::Value, mut file: File) -> anyhow::Result<()> {
         let serialized = serde_json::to_string(&value).expect("Failed to serialize value");
 
         match file.write_all(serialized.as_bytes()).await {
@@ -82,16 +81,8 @@ impl StorageClient for FileStorageClient {
         }
     }
 
-    async fn set(&self, key: &str, value: serde_json::Value, create: Option<bool>) -> anyhow::Result<()> {
-        // create file with key
-        match create {
-            Some(true) => {
-                return self.write_new(key, value).await;
-            },
-            _ => {
-                return self.write(key, value).await;
-            }
-        }
+    async fn set(&self, key: &str, value: serde_json::Value) -> anyhow::Result<()> {
+        return self.write(key, value).await
     }
 
     async fn delete(&self, key: &str) -> bool {
@@ -151,17 +142,17 @@ mod tests {
         let key = "test";
         let value = serde_json::json!({"j": "value"});
 
-        client.write_new(key, value.clone()).await.expect("Failed to write new file");
+        // confirm file doesn't exist before
+        let file_exists = tokio::fs::metadata(client.file_path(key)).await.is_ok();
+        assert!(!file_exists);
+
+        client.write(key, value.clone()).await.expect("Failed to write new file");
 
         let data = tokio::fs::read(client.file_path(key)).await.expect("Failed to read file");
         let data = String::from_utf8(data).expect("Data is not valid UTF-8");
         let data: serde_json::Value = serde_json::from_str(&data).expect("Failed to deserialize data");
 
         assert_eq!(data, value);
-
-        // attempt to write new again and it should fail
-        let result = client.write_new(key, value.clone()).await;
-        assert!(result.is_err());
 
         // clean up
         tokio::fs::remove_dir_all(dir_path.clone()).await.expect("Failed to remove directory");
@@ -209,6 +200,76 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_set_file_doesnt_exist() {
+        let current_directory = std::env::current_dir().expect("Failed to get current directory"); 
+        let dir_path = format!("{}/tmp", current_directory.display());
+        let uri = Uri::builder().path_and_query(dir_path.clone()).build().unwrap();
+
+        let client = FileStorageClient::new(uri);
+
+        let key = "test";
+        let value = serde_json::json!({"j": "value"});
+
+        // confirm that the file doesn't exists
+        let file_exists = tokio::fs::metadata(client.file_path(key)).await.is_ok();
+        assert!(!file_exists);
+
+        let result = client.set(key, value.clone()).await;
+        assert!(result.is_ok());
+
+        let data = tokio::fs::read(client.file_path(key)).await.expect("Failed to read file");
+        let data = String::from_utf8(data).expect("Data is not valid UTF-8");
+        let data: serde_json::Value = serde_json::from_str(&data).expect("Failed to deserialize data");
+
+        assert_eq!(data, value);
+
+
+        // clean up
+        tokio::fs::remove_dir_all(dir_path.clone()).await.expect("Failed to remove directory");
+    }
+
+    #[tokio::test]
+    async fn test_set_overwrite() {
+        let current_directory = std::env::current_dir().expect("Failed to get current directory"); 
+        let dir_path = format!("{}/tmp", current_directory.display());
+        let uri = Uri::builder().path_and_query(dir_path.clone()).build().unwrap();
+
+        let client = FileStorageClient::new(uri);
+
+        let key = "test";
+        let value = serde_json::json!({"j": "value"});
+
+        // create directory
+        client.create_storage_dir().await.expect("Failed to create storage directory");
+
+        // write to file test with fs::write
+        let mut file = match tokio::fs::File::create_new(client.file_path(key)).await {
+            Ok(file) => file,
+            Err(e) => panic!("Failed to write file: {}", e),
+        };
+
+        assert!(file.write_all(serde_json::to_string(&value).expect("Failed to serialize").as_bytes()).await.is_ok());
+        
+        // confirm that the file exists
+        let file_exists = tokio::fs::metadata(client.file_path(key)).await.is_ok();
+        assert!(file_exists);
+
+        // now call write as it alraedy should exist
+        // write different value as it should overwrite
+        let new_value = serde_json::json!({"new": "value"});
+        client.set(key, new_value.clone()).await.expect("Failed to write file");
+
+        let data = tokio::fs::read(client.file_path(key)).await.expect("Failed to read file");
+        let data = String::from_utf8(data).expect("Data is not valid UTF-8");
+        let data: serde_json::Value = serde_json::from_str(&data).expect("Failed to deserialize data");
+
+        assert_eq!(data, new_value);
+
+        // clean up
+        tokio::fs::remove_dir_all(dir_path.clone()).await.expect("Failed to remove directory");
+    }
+
+    #[tokio::test]
     async fn test_get_data() {
         let current_directory = std::env::current_dir().expect("Failed to get current directory"); 
         let dir_path = format!("{}/tmp", current_directory.display());
@@ -218,6 +279,12 @@ mod tests {
 
         let key = "test";
         let value = serde_json::json!({"j": "value"});
+
+        client.create_storage_dir().await.expect("Failed to create storage directory");
+
+        // No data at first so should be none
+        let result = client.get(key).await;
+        assert!(result.is_none());
 
         // write to file test with fs::write
         match tokio::fs::write(client.file_path(key), serde_json::to_string(&value).expect("Failed to serialize value")).await {
@@ -229,6 +296,6 @@ mod tests {
         assert_eq!(data, value);
 
         // clean up
-        //tokio::fs::remove_dir_all(dir_path.clone()).await.expect("Failed to remove directory");
+        tokio::fs::remove_dir_all(dir_path.clone()).await.expect("Failed to remove directory");
     }
 }
