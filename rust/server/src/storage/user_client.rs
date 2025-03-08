@@ -135,4 +135,35 @@ mod tests {
         // clean up
         tokio::fs::remove_dir_all(dir_path.clone()).await.expect("Failed to remove directory");
     }
+
+
+    #[tokio::test]
+    async fn test_put_new_user() {
+        let current_directory = std::env::current_dir().expect("Failed to get current directory"); 
+        let dir_path = format!("{}/put_new_user", current_directory.display());
+        let uri = Uri::builder().path_and_query(dir_path.clone()).build().unwrap();
+
+        let user_client = UserCLient::new(uri);
+
+        // check that dir_path doesn't exist
+        let dir_exists = tokio::fs::metadata(dir_path.clone()).await.is_ok();
+        assert!(!dir_exists);
+
+        let user = User::new("pub_key".to_string(), "hash".to_string());
+        match user_client.put_user(&user).await {
+            Ok(result) => {
+                // the set user should be a new uuid
+                assert!(!result.uuid.is_empty());
+                assert_eq!(result.pub_key, user.pub_key);
+                assert_eq!(result.hash, user.hash);
+                let file_path = format!("{}/user:{}", dir_path.clone(), result.uuid);
+                let file_exists = tokio::fs::metadata(file_path).await.is_ok();
+                assert!(file_exists);
+            },
+            Err(_) => assert!(false)
+        }
+
+        // clean up
+        tokio::fs::remove_dir_all(dir_path.clone()).await.expect("Failed to remove directory");
+    }
 }
