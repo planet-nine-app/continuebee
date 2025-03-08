@@ -1,11 +1,12 @@
-use std::sync::Arc;
-
-use axum::Router;
-use config::{AppState, ServerConfig};
-use storage::Client;
-
 mod config;
 mod storage;
+mod handlers;
+
+use std::sync::Arc;
+use axum::Router;
+
+use config::{AppState, ServerConfig};
+use storage::Client;
 
 
 #[tokio::main]
