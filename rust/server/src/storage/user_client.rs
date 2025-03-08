@@ -209,4 +209,66 @@ mod tests {
         // clean up
         tokio::fs::remove_dir_all(dir_path.clone()).await.expect("Failed to remove directory");
     }
+
+    #[tokio::test]
+    async fn test_update_hash_user_doesnt_exist() {
+        let current_directory = std::env::current_dir().expect("Failed to get current directory"); 
+        let dir_path = format!("{}/update_hash_user_doesnt_exist", current_directory.display());
+        let uri = Uri::builder().path_and_query(dir_path.clone()).build().unwrap();
+
+        let user_client = UserCLient::new(uri);
+
+        // check that dir_path doesn't exist
+        let dir_exists = tokio::fs::metadata(dir_path.clone()).await.is_ok();
+        assert!(!dir_exists);
+
+        let user = User::new("pub_key".to_string(), "hash".to_string());
+
+        let result = user_client.update_hash(&user, "new_hash".to_string()).await.is_err();
+        assert!(result);
+    }
+
+    #[tokio::test]
+    async fn test_update_hash() {
+        let current_directory = std::env::current_dir().expect("Failed to get current directory"); 
+        let dir_path = format!("{}/update_hash_user_doesnt_exist", current_directory.display());
+        let uri = Uri::builder().path_and_query(dir_path.clone()).build().unwrap();
+
+        let user_client = UserCLient::new(uri);
+
+        // check that dir_path doesn't exist
+        let dir_exists = tokio::fs::metadata(dir_path.clone()).await.is_ok();
+        assert!(!dir_exists);
+
+        let user = User::new("pub_key".to_string(), "hash".to_string());
+
+        if let Ok(result) = user_client.clone().put_user(&user).await {
+            // the set user should be a new uuid
+            assert!(!result.uuid.is_empty());
+            assert_eq!(result.pub_key, user.pub_key);
+            assert_eq!(result.hash, user.hash);
+            let file_path = format!("{}/user:{}", dir_path.clone(), result.uuid);
+            let file_exists = tokio::fs::metadata(file_path).await.is_ok();
+            assert!(file_exists);
+
+            // both uuid and hash should have changed
+            match user_client.clone().update_hash(&result, "new_hash".to_string()).await {
+                Ok(new_result) => {
+                    assert_eq!(new_result.pub_key, result.pub_key);
+                    assert_ne!(new_result.uuid, result.uuid);
+                    assert_eq!(new_result.hash, "new_hash".to_string());
+                    assert_ne!(new_result.hash, result.hash);
+                    let file_path = format!("{}/user:{}", dir_path.clone(), new_result.uuid);
+                    let file_exists = tokio::fs::metadata(file_path).await.is_ok();
+                    assert!(file_exists);
+                }
+                Err(_) => assert!(false)
+            }
+        } else {
+            assert!(false);
+        }
+
+        // clean up
+        tokio::fs::remove_dir_all(dir_path.clone()).await.expect("Failed to remove directory");
+    }
 }
