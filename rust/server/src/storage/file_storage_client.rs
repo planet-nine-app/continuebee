@@ -112,7 +112,7 @@ mod tests {
     async fn test_create_storage_dir() {
         // get project root
         let current_directory = std::env::current_dir().expect("Failed to get current directory"); 
-        let dir_path = format!("{}/tmp", current_directory.display());
+        let dir_path = format!("{}/create_storage_dir", current_directory.display());
         let uri = Uri::builder().path_and_query(dir_path.clone()).build().unwrap();
 
         let client = FileStorageClient::new(uri);
@@ -134,7 +134,7 @@ mod tests {
     #[tokio::test]
     async fn test_write_new() {
         let current_directory = std::env::current_dir().expect("Failed to get current directory"); 
-        let dir_path = format!("{}/tmp", current_directory.display());
+        let dir_path = format!("{}/write_new", current_directory.display());
         let uri = Uri::builder().path_and_query(dir_path.clone()).build().unwrap();
 
         let client = FileStorageClient::new(uri);
@@ -161,7 +161,7 @@ mod tests {
     #[tokio::test]
     async fn test_write_already_existing() {
         let current_directory = std::env::current_dir().expect("Failed to get current directory"); 
-        let dir_path = format!("{}/tmp", current_directory.display());
+        let dir_path = format!("{}/write_already_existing", current_directory.display());
         let uri = Uri::builder().path_and_query(dir_path.clone()).build().unwrap();
 
         let client = FileStorageClient::new(uri);
@@ -202,7 +202,7 @@ mod tests {
     #[tokio::test]
     async fn test_set_file_doesnt_exist() {
         let current_directory = std::env::current_dir().expect("Failed to get current directory"); 
-        let dir_path = format!("{}/tmp", current_directory.display());
+        let dir_path = format!("{}/set_file_doesnt_exist", current_directory.display());
         let uri = Uri::builder().path_and_query(dir_path.clone()).build().unwrap();
 
         let client = FileStorageClient::new(uri);
@@ -231,7 +231,7 @@ mod tests {
     #[tokio::test]
     async fn test_set_overwrite() {
         let current_directory = std::env::current_dir().expect("Failed to get current directory"); 
-        let dir_path = format!("{}/tmp", current_directory.display());
+        let dir_path = format!("{}/set_overwrite", current_directory.display());
         let uri = Uri::builder().path_and_query(dir_path.clone()).build().unwrap();
 
         let client = FileStorageClient::new(uri);
@@ -272,7 +272,7 @@ mod tests {
     #[tokio::test]
     async fn test_get_data() {
         let current_directory = std::env::current_dir().expect("Failed to get current directory"); 
-        let dir_path = format!("{}/tmp", current_directory.display());
+        let dir_path = format!("{}/get_data", current_directory.display());
         let uri = Uri::builder().path_and_query(dir_path.clone()).build().unwrap();
 
         let client = FileStorageClient::new(uri);
@@ -298,4 +298,28 @@ mod tests {
         // clean up
         tokio::fs::remove_dir_all(dir_path.clone()).await.expect("Failed to remove directory");
     }
+
+    #[tokio::test]
+    async fn test_set_and_get() {
+
+        let current_directory = std::env::current_dir().expect("Failed to get current directory"); 
+        let dir_path = format!("{}/set_and_get", current_directory.display());
+        let uri = Uri::builder().path_and_query(dir_path.clone()).build().unwrap();
+
+        let client = FileStorageClient::new(uri);
+
+        let key = "test";
+        let value = serde_json::json!({"j": "value"});
+
+        client.set(key, value.clone()).await.expect("Failed to set value");
+
+        match client.get(key).await {
+            Some(v) => assert_eq!(v, value.clone()),
+            None => assert!(false)
+        };
+
+        // clean up
+        tokio::fs::remove_dir_all(dir_path.clone()).await.expect("Failed to remove directory");
+    }
+
 }
