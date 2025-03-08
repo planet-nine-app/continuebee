@@ -322,4 +322,41 @@ mod tests {
         tokio::fs::remove_dir_all(dir_path.clone()).await.expect("Failed to remove directory");
     }
 
+    #[tokio::test]
+    async fn test_delete() {
+        let current_directory = std::env::current_dir().expect("Failed to get current directory"); 
+        let dir_path = format!("{}/delete", current_directory.display());
+        let uri = Uri::builder().path_and_query(dir_path.clone()).build().unwrap();
+
+        let client = FileStorageClient::new(uri);
+
+        let key = "test";
+        let value = serde_json::json!({"j": "value"});
+
+        client.create_storage_dir().await.expect("Failed to create storage directory");
+
+        // write to file test with fs::write
+        match tokio::fs::write(client.file_path(key), serde_json::to_string(&value).expect("Failed to serialize value")).await {
+            Ok(_) => {},
+            Err(e) => panic!("Failed to write file: {}", e),
+        }
+
+        // confirm that the file exists
+        let file_exists = tokio::fs::metadata(client.file_path(key)).await.is_ok();
+        assert!(file_exists);
+
+        // delete
+        assert!(client.delete(key).await);
+
+        // file shouldn't exist
+        let file_exists = tokio::fs::metadata(client.file_path(key)).await.is_ok();
+        assert!(!file_exists);
+
+        // delete: should be false
+        assert!(!client.delete(key).await);
+
+        // clean up
+        tokio::fs::remove_dir_all(dir_path.clone()).await.expect("Failed to remove directory");
+    }
+
 }
