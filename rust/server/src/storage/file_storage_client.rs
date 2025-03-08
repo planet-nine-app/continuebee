@@ -6,6 +6,7 @@ use super::StorageClient;
 
 
 
+#[derive(Debug, Clone)]
 pub struct FileStorageClient {
     pub storage_uri: Uri,    
 }

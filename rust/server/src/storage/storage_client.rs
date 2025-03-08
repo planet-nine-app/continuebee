@@ -1,11 +1,4 @@
 use async_trait::async_trait;
-use axum::http::Uri;
-use tokio::io::AsyncWriteExt;
-
-fn is_file_uri(uri: &Uri) -> bool {
-    // if scheme is none
-    uri.scheme().is_none()
-}
 
 #[async_trait]
 pub trait StorageClient {
@@ -17,22 +10,20 @@ pub trait StorageClient {
     async fn delete(&self, key: &str) -> bool;
 }
 
+#[derive(Debug, Clone)]
+pub struct NotImplementedYetClient {}
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_is_file_uri() {
-
-        let uri = Uri::from_static("http://example.com");
-        assert!(!is_file_uri(&uri));
-
-        let uri = Uri::from_static("/tmp");
-        assert!(is_file_uri(&uri));
-
-        let uri = Uri::from_static("tmp");
-        assert!(is_file_uri(&uri));
+#[async_trait]
+impl StorageClient for NotImplementedYetClient {
+    async fn get(&self, key: &str) -> Option<serde_json::Value> {
+        None
     }
 
+    async fn set(&self, key: &str, value: serde_json::Value) -> anyhow::Result<()> {
+        Ok(())
+    }
+
+    async fn delete(&self, key: &str) -> bool {
+        false
+    }
 }
