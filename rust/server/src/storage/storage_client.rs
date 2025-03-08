@@ -15,15 +15,15 @@ pub struct NotImplementedYetClient {}
 
 #[async_trait]
 impl StorageClient for NotImplementedYetClient {
-    async fn get(&self, key: &str) -> Option<serde_json::Value> {
+    async fn get(&self, _key: &str) -> Option<serde_json::Value> {
         None
     }
 
-    async fn set(&self, key: &str, value: serde_json::Value) -> anyhow::Result<()> {
+    async fn set(&self, _key: &str, _value: serde_json::Value) -> anyhow::Result<()> {
         Ok(())
     }
 
-    async fn delete(&self, key: &str) -> bool {
+    async fn delete(&self, _key: &str) -> bool {
         false
     }
 }
