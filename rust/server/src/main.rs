@@ -7,7 +7,7 @@ use axum::{routing::{get, post}, Router};
 
 use config::{AppState, ServerConfig};
 use handlers::create_user_handler;
-use storage::Client;
+use storage::UserCLient;
 
 
 #[tokio::main]
@@ -20,10 +20,10 @@ async fn main() {
 }
 
 fn setup_router(server_config: &ServerConfig) -> Router {
-    let client = Client::new(server_config.storage_uri.clone());
+    let user_client = UserCLient::new(server_config.storage_uri.clone());
 
     let app_state = Arc::new(AppState {
-        client: client,
+        user_client: user_client,
         env: server_config.clone(),
     });
 

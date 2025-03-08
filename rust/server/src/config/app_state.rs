@@ -1,9 +1,9 @@
 
-use crate::storage::Client;
+use crate::storage::UserCLient;
 
 use super::ServerConfig;
 
 pub struct AppState {
-    pub client: Client,
+    pub user_client: UserCLient,
     pub env: ServerConfig,
 }
