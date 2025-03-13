@@ -1,5 +1,5 @@
 use axum::http::Uri;
-use sessionless::{PublicKey, Sessionless};
+use sessionless::{secp256k1::PublicKey, Sessionless};
 
 use super::{Client, PubKeys, StorageClient, User};
 
@@ -48,6 +48,7 @@ impl UserCLient {
         if let Ok(value) = serde_json::to_value(user.clone()) {
             match self.client.set(&UserCLient::key(&user.uuid).as_str(), value).await {
                 Ok(_) => {
+                    // Save the keys
                     return Ok(user.clone());
                 },
                 Err(e) => Err(e.into()),
@@ -94,7 +95,7 @@ impl UserCLient {
     }
 
     // will add a new key
-    pub async fn update_keys(&self, pub_key: PublicKey, user_uuid: &str) -> anyhow::Result<()> {
+    pub async fn update_keys(&self, pub_key: &PublicKey, user_uuid: &str) -> anyhow::Result<()> {
         match self.get_keys().await {
             Ok(mut pub_keys) => {
                 let pub_keys = pub_keys.add_user_uuid(user_uuid, &pub_key.to_string());
@@ -108,6 +109,7 @@ impl UserCLient {
 
 #[cfg(test)]
 mod tests {
+
     use super::*;
     use axum::http::Uri;
     use tokio::io::AsyncWriteExt;
@@ -173,7 +175,7 @@ mod tests {
             Ok(result) => {
                 // the set user should be a new uuid
                 assert!(!result.uuid.is_empty());
-                assert_eq!(result.pub_key, pub_key);
+                assert_eq!(result.pub_key.to_string(), pub_key.to_string());
                 assert_eq!(result.hash, hash);
                 let file_path = format!("{}/user:{}", dir_path.clone(), result.uuid);
                 let file_exists = tokio::fs::metadata(file_path).await.is_ok();

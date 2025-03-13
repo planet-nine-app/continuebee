@@ -3,7 +3,7 @@ use std::{str::FromStr, sync::Arc};
 use axum::{extract::State, Json};
 use sessionless::{secp256k1::PublicKey, Sessionless, Signature};
 
-use crate::{config::AppState, storage::User};
+use crate::config::AppState;
 
 use super::{CreateUserRequest, Response};
 
@@ -35,7 +35,13 @@ pub async fn create_user_handler(
             None => {
                 // otherwise, put a new user
                 match data.user_client.clone().put_user(&body.pub_key, &body.hash).await {
-                    Ok(user) => Json(Response::success(user.uuid)),
+                    Ok(user) => {
+                        // add pub key with user uuid
+                        match data.user_client.clone().update_keys(&pub_key, &user.uuid).await {
+                            Ok(_) => Json(Response::success(user.uuid)),
+                            Err(_) => Json(Response::server_error("Failed to update keys".to_string()))
+                        }
+                    },
                     Err(_) => Json(Response::server_error("Failed to put user".to_string()))
                 }
             }
