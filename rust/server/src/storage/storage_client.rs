@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 
 #[async_trait]
-pub trait StorageClient: Send {
+pub trait StorageClient: Send + Clone {
     // Get a json value from the storage
     async fn get(&self, key: &str) -> Option<serde_json::Value>;
     // Set a json value in the storage; will create new file if it doesnt exist or overwrite otherwise

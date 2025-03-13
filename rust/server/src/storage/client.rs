@@ -1,5 +1,6 @@
 use axum::http::Uri;
 
+use async_trait::async_trait;
 use super::{FileStorageClient, NotImplementedYetClient, StorageClient};
 
 fn is_file_uri(uri: &Uri) -> bool {
@@ -21,11 +22,28 @@ impl Client {
         }
         Client::NotImplementedYet {storage_client: NotImplementedYetClient {}}
     }
+}
 
-    pub fn storage_client(self) -> Box<dyn StorageClient>  { 
+#[async_trait]
+impl StorageClient for Client {
+    async fn get(&self, key: &str) -> Option<serde_json::Value> {
         match self {
-            Client::FileStorageClient { storage_client} => Box::new(storage_client),
-            Client::NotImplementedYet { storage_client } => Box::new(storage_client)
+            Client::FileStorageClient { storage_client } => storage_client.get(key).await,
+            Client::NotImplementedYet { storage_client} => storage_client.get(key).await,
+        }
+    }
+    // Set a json value in the storage; will create new file if it doesnt exist or overwrite otherwise
+    async fn set(&self, key: &str, value: serde_json::Value) -> anyhow::Result<()> {
+        match self {
+            Client::FileStorageClient { storage_client } => storage_client.set(key, value).await,
+            Client::NotImplementedYet { storage_client} => storage_client.set(key, value).await,
+        }
+    }
+    // Delete from the storage; returns true if the value was deleted
+    async fn delete(&self, key: &str) -> bool {
+        match self {
+            Client::FileStorageClient { storage_client } => storage_client.delete(key).await,
+            Client::NotImplementedYet { storage_client} => storage_client.delete(key).await,
         }
     }
 }
@@ -87,10 +105,10 @@ mod tests {
 
         let key = "hi";
         let value = serde_json::json!({"k": "v"});
-        let set = client.clone().storage_client().set(key, value.clone()).await;
+        let set = client.set(key, value.clone()).await;
         assert!(set.is_ok());
 
-        let get = client.clone().storage_client().get(key).await;
+        let get = client.get(key).await;
         assert!(get.is_some());
         assert_eq!(get.unwrap(), value.clone());
 

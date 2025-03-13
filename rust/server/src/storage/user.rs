@@ -10,7 +10,10 @@ pub struct User {
 
 impl User {
     // Create a new user with an empty uuid
-    pub fn new(pub_key: String, hash: String) -> Self {
-        Self {uuid: "".to_string(), pub_key: pub_key, hash: hash}
+    pub fn new(uuid: Option<String>, pub_key: String, hash: String) -> Self {
+        match uuid {
+            Some(uuid) => Self {uuid: uuid, pub_key: pub_key, hash: hash},
+            None => Self {uuid: "".to_string(), pub_key: pub_key, hash: hash}
+        }
     }
 }

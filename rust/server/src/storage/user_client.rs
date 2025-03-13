@@ -1,9 +1,11 @@
 use axum::http::Uri;
-use sessionless::Sessionless;
+use sessionless::{PublicKey, Sessionless};
 
-use super::{Client, StorageClient, User};
+use super::{Client, PubKeys, StorageClient, User};
 
 
+static USER_STRING: &str = "user";
+static KEYS_STRING: &str = "keys";
 
 #[derive(Debug, Clone)]
 pub struct UserCLient {
@@ -16,15 +18,18 @@ impl UserCLient {
     }
 
     fn key(uuid: &str) -> String {
-        format!("user:{}", uuid)
+        format!("{}:{}", USER_STRING, uuid)
     }
 
-    pub fn storage_client(self) -> Box<dyn StorageClient> {
-        self.client.storage_client()
+    pub async fn get_user_uuid(self, pub_key: &PublicKey) -> Option<String> {
+        match self.get_keys().await {
+            Ok(pub_keys) => pub_keys.get_user_uuid(&pub_key.to_string()).cloned(),
+            Err(_) => None
+        }
     }
 
-    pub async fn get_user(self, uuid: &str) -> Option<User> {
-        match self.storage_client().get(UserCLient::key(uuid).as_str()).await {
+    pub async fn get_user(self, uuid: impl AsRef<str>) -> Option<User> {
+        match self.client.get(UserCLient::key(uuid.as_ref()).as_str()).await {
             Some(value) => {
                 match serde_json::from_value(value) {
                     Ok(user) => Some(user),
@@ -35,13 +40,13 @@ impl UserCLient {
         }
     }
 
-    pub async fn put_user(self, user: &User) -> anyhow::Result<User> {
+    // Will put a new user with the given pub_key and hash
+    // will return the newly put user
+    pub async fn put_user(&self, pub_key: &str, hash: &str) -> anyhow::Result<User> {
         let uuid = Sessionless::generate_uuid().to_string();
-        let mut user = user.clone();
-        user.uuid = uuid;
-
+        let user = User::new(Some(uuid), pub_key.to_string(), hash.to_string());
         if let Ok(value) = serde_json::to_value(user.clone()) {
-            match self.storage_client().set(UserCLient::key(&user.uuid).as_str(), value).await {
+            match self.client.set(&UserCLient::key(&user.uuid).as_str(), value).await {
                 Ok(_) => {
                     return Ok(user.clone());
                 },
@@ -52,38 +57,52 @@ impl UserCLient {
         }
     }
 
-    pub async fn update_hash(self, existing_user: &User, new_hash: String) -> anyhow::Result<User> {
+
+    // TODO
+    /* pub async fn update_hash(self, existing_user: &User, new_hash: String) -> anyhow::Result<User> {
         if let Some(mut user) = self.clone().get_user(&existing_user.uuid).await {
             user.hash = new_hash;
             self.clone().put_user(&user).await
         } else {
             Err(anyhow::Error::msg("Failed to retrieve existing user"))
         }
-    }
+    }*/
 
     pub async fn delete_user(self, uuid: &str) -> bool {
-        self.storage_client().delete(UserCLient::key(uuid).as_str()).await
+        self.client.delete(UserCLient::key(uuid).as_str()).await
     }
 
-    pub async fn save_keys(self, keys: Vec<&str>) -> anyhow::Result<()> {
+    pub async fn save_pub_keys(&self, keys: PubKeys) -> anyhow::Result<()> {
         if let Ok(value) = serde_json::to_value(keys) {
-            self.storage_client().set("keys", value).await?;
+            self.client.set(KEYS_STRING, value).await?;
             Ok(())
         } else {
             Err(anyhow::Error::msg("Failed to set keys"))
         }
     }
 
-    pub async fn get_keys(self) -> Vec<String> {
-        match self.storage_client().get("keys").await {
+    pub async fn get_keys(&self) -> anyhow::Result<PubKeys> {
+        match self.client.get(KEYS_STRING).await {
             Some(value) => {
                 match serde_json::from_value(value) {
-                    Ok(result) => result,
-                    Err(_) => vec![]
+                    Ok(result) => Ok(result),
+                    Err(_) => Ok(PubKeys::default())
                 }
             },
-            None => vec![]
+            None => Ok(PubKeys::default())
         }
+    }
+
+    // will add a new key
+    pub async fn update_keys(&self, pub_key: PublicKey, user_uuid: &str) -> anyhow::Result<()> {
+        match self.get_keys().await {
+            Ok(mut pub_keys) => {
+                let pub_keys = pub_keys.add_user_uuid(user_uuid, &pub_key.to_string());
+                self.save_pub_keys(pub_keys.clone()).await
+            },
+            Err(e) => Err(e)
+        }
+
     }
 }
 
@@ -114,8 +133,7 @@ mod tests {
         let file_exists = tokio::fs::metadata(file_path.clone()).await.is_ok();
         assert!(!file_exists);
 
-        let mut user = User::new("pub_key".to_string(), "hash".to_string());
-        user.uuid = initial_uuid.to_string();
+        let user = User::new(Some(initial_uuid.to_string()), "pub_key".to_string(), "hash".to_string());
 
         let data= serde_json::to_value(user.clone()).expect("Failed to serialize");
 
@@ -138,9 +156,9 @@ mod tests {
 
 
     #[tokio::test]
-    async fn test_put_new_user() {
+    async fn test_put_user() {
         let current_directory = std::env::current_dir().expect("Failed to get current directory"); 
-        let dir_path = format!("{}/put_new_user", current_directory.display());
+        let dir_path = format!("{}/put_user", current_directory.display());
         let uri = Uri::builder().path_and_query(dir_path.clone()).build().unwrap();
 
         let user_client = UserCLient::new(uri);
@@ -149,123 +167,19 @@ mod tests {
         let dir_exists = tokio::fs::metadata(dir_path.clone()).await.is_ok();
         assert!(!dir_exists);
 
-        let user = User::new("pub_key".to_string(), "hash".to_string());
-        match user_client.put_user(&user).await {
+        let pub_key = "pub_key";
+        let hash = "hash";
+        match user_client.put_user(pub_key, hash).await {
             Ok(result) => {
                 // the set user should be a new uuid
                 assert!(!result.uuid.is_empty());
-                assert_eq!(result.pub_key, user.pub_key);
-                assert_eq!(result.hash, user.hash);
+                assert_eq!(result.pub_key, pub_key);
+                assert_eq!(result.hash, hash);
                 let file_path = format!("{}/user:{}", dir_path.clone(), result.uuid);
                 let file_exists = tokio::fs::metadata(file_path).await.is_ok();
                 assert!(file_exists);
             },
             Err(_) => assert!(false)
-        }
-
-        // clean up
-        tokio::fs::remove_dir_all(dir_path.clone()).await.expect("Failed to remove directory");
-    }
-
-    #[tokio::test]
-    async fn test_put_existing_user() {
-        let current_directory = std::env::current_dir().expect("Failed to get current directory"); 
-        let dir_path = format!("{}/put_existing_user", current_directory.display());
-        let uri = Uri::builder().path_and_query(dir_path.clone()).build().unwrap();
-
-        let user_client = UserCLient::new(uri);
-
-        // check that dir_path doesn't exist
-        let dir_exists = tokio::fs::metadata(dir_path.clone()).await.is_ok();
-        assert!(!dir_exists);
-
-        let user = User::new("pub_key".to_string(), "hash".to_string());
-        if let Ok(result) = user_client.clone().put_user(&user).await {
-            // the set user should be a new uuid
-            assert!(!result.uuid.is_empty());
-            assert_eq!(result.pub_key, user.pub_key);
-            assert_eq!(result.hash, user.hash);
-            let file_path = format!("{}/user:{}", dir_path.clone(), result.uuid);
-            let file_exists = tokio::fs::metadata(file_path).await.is_ok();
-            assert!(file_exists);
-
-            // put result now
-            // it should have a different uuid now and a different file should be created
-            if let Ok(new_result) = user_client.clone().put_user(&result).await {
-                assert_ne!(new_result.uuid, result.uuid);
-                assert_eq!(new_result.pub_key, result.pub_key);
-                assert_eq!(new_result.hash, result.hash);
-                let file_path = format!("{}/user:{}", dir_path.clone(), new_result.uuid);
-                let file_exists = tokio::fs::metadata(file_path).await.is_ok();
-                assert!(file_exists);
-            } else {
-                assert!(false);
-            }
-
-        } else {
-            assert!(false);
-        }
-
-        // clean up
-        tokio::fs::remove_dir_all(dir_path.clone()).await.expect("Failed to remove directory");
-    }
-
-    #[tokio::test]
-    async fn test_update_hash_user_doesnt_exist() {
-        let current_directory = std::env::current_dir().expect("Failed to get current directory"); 
-        let dir_path = format!("{}/update_hash_user_doesnt_exist", current_directory.display());
-        let uri = Uri::builder().path_and_query(dir_path.clone()).build().unwrap();
-
-        let user_client = UserCLient::new(uri);
-
-        // check that dir_path doesn't exist
-        let dir_exists = tokio::fs::metadata(dir_path.clone()).await.is_ok();
-        assert!(!dir_exists);
-
-        let user = User::new("pub_key".to_string(), "hash".to_string());
-
-        let result = user_client.update_hash(&user, "new_hash".to_string()).await.is_err();
-        assert!(result);
-    }
-
-    #[tokio::test]
-    async fn test_update_hash() {
-        let current_directory = std::env::current_dir().expect("Failed to get current directory"); 
-        let dir_path = format!("{}/update_hash_user_doesnt_exist", current_directory.display());
-        let uri = Uri::builder().path_and_query(dir_path.clone()).build().unwrap();
-
-        let user_client = UserCLient::new(uri);
-
-        // check that dir_path doesn't exist
-        let dir_exists = tokio::fs::metadata(dir_path.clone()).await.is_ok();
-        assert!(!dir_exists);
-
-        let user = User::new("pub_key".to_string(), "hash".to_string());
-
-        if let Ok(result) = user_client.clone().put_user(&user).await {
-            // the set user should be a new uuid
-            assert!(!result.uuid.is_empty());
-            assert_eq!(result.pub_key, user.pub_key);
-            assert_eq!(result.hash, user.hash);
-            let file_path = format!("{}/user:{}", dir_path.clone(), result.uuid);
-            let file_exists = tokio::fs::metadata(file_path).await.is_ok();
-            assert!(file_exists);
-
-            // both uuid and hash should have changed
-            match user_client.clone().update_hash(&result, "new_hash".to_string()).await {
-                Ok(new_result) => {
-                    assert_eq!(new_result.pub_key, result.pub_key);
-                    assert_ne!(new_result.uuid, result.uuid);
-                    assert_eq!(new_result.hash, "new_hash".to_string());
-                    assert_ne!(new_result.hash, result.hash);
-                    let file_path = format!("{}/user:{}", dir_path.clone(), new_result.uuid);
-                    let file_exists = tokio::fs::metadata(file_path).await.is_ok();
-                    assert!(file_exists);
-                }
-                Err(_) => assert!(false)
-            }
-        } else {
-            assert!(false);
         }
 
         // clean up
