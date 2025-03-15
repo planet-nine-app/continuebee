@@ -3,7 +3,7 @@ should();
 import sessionless from 'sessionless-node';
 import superAgent from 'superagent';
 
-const baseURL = process.env.DEV ? 'https://dev.continuebee.allyabase.com/' : 'http://localhost:2999/';
+const baseURL = process.env.SUB_DOMAIN ? `https://${process.env.SUB_DOMAIN}.continuebee.allyabase.com/` : 'http://localhost:2999/';
 
 const get = async function(path) {
   //console.info("Getting " + path);
