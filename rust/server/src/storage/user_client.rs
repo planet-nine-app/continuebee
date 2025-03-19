@@ -48,7 +48,6 @@ impl UserCLient {
         if let Ok(value) = serde_json::to_value(user.clone()) {
             match self.client.set(&UserCLient::key(&user.uuid).as_str(), value).await {
                 Ok(_) => {
-                    // Save the keys
                     return Ok(user.clone());
                 },
                 Err(e) => Err(e.into()),
@@ -183,6 +182,56 @@ mod tests {
             },
             Err(_) => assert!(false)
         }
+
+        // clean up
+        tokio::fs::remove_dir_all(dir_path.clone()).await.expect("Failed to remove directory");
+    }
+
+    #[tokio::test]
+    async fn test_delete_user() {
+        let current_directory = std::env::current_dir().expect("Failed to get current directory"); 
+        let dir_path = format!("{}/delete_user", current_directory.display());
+        let uri = Uri::builder().path_and_query(dir_path.clone()).build().unwrap();
+
+        let initial_uuid = "uuid";
+        let file_path = format!("{}/user:{}", dir_path, initial_uuid);
+        let user_client = UserCLient::new(uri);
+
+        match user_client.clone().client {
+            Client::FileStorageClient { storage_client } => {
+                storage_client.create_storage_dir().await.expect("Failed to create storage directory");
+            },
+            _ => assert!(false)
+        }
+
+        // confirm the file doesn't exist before
+        let file_exists = tokio::fs::metadata(file_path.clone()).await.is_ok();
+        assert!(!file_exists);
+
+        let user = User::new(Some(initial_uuid.to_string()), "pub_key".to_string(), "hash".to_string());
+        let data = serde_json::to_value(user.clone()).expect("Failed to serialize");
+
+        // write user to file with fs::write
+        let mut file = match tokio::fs::File::create_new(file_path.clone()).await {
+            Ok(file) => file,
+            Err(e) => panic!("Failed to write to file: {}", e),
+        };
+
+        assert!(file.write_all(serde_json::to_string(&data).expect("Failed to serialize to string").as_bytes()).await.is_ok());
+
+        // confirm the file exists
+        let file_exists = tokio::fs::metadata(file_path.clone()).await.is_ok();
+        assert!(file_exists);
+
+        // delete the user: should be true as the file should be deleted
+        assert!(user_client.clone().delete_user(initial_uuid).await);
+
+        // confirm the file doesn't exist after
+        let file_exists = tokio::fs::metadata(file_path.clone()).await.is_ok();
+        assert!(!file_exists);
+
+        // try to delete the user again: should be false as the file doesn't exist
+        assert!(!user_client.clone().delete_user(initial_uuid).await);
 
         // clean up
         tokio::fs::remove_dir_all(dir_path.clone()).await.expect("Failed to remove directory");
