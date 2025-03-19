@@ -109,6 +109,8 @@ impl UserCLient {
 #[cfg(test)]
 mod tests {
 
+    use std::str::FromStr;
+
     use super::*;
     use axum::http::Uri;
     use tokio::io::AsyncWriteExt;
@@ -333,6 +335,55 @@ mod tests {
             },
             Err(_) => assert!(false)
         }
+
+        // clean up
+        tokio::fs::remove_dir_all(dir_path.clone()).await.expect("Failed to remove directory");
+    }
+
+    #[tokio::test]
+    async fn test_update_keys() {
+        let current_directory = std::env::current_dir().expect("Failed to get current directory"); 
+        let dir_path = format!("{}/update_keys", current_directory.display());
+        let uri = Uri::builder().path_and_query(dir_path.clone()).build().unwrap();
+
+        let file_path = format!("{}/{}", dir_path, KEYS_STRING);
+        let user_client = UserCLient::new(uri);
+
+        // confirm file doesn't exist before
+        let file_exists = tokio::fs::metadata(file_path.clone()).await.is_ok();
+        assert!(!file_exists);
+
+        // create directory
+        match user_client.clone().client {
+            Client::FileStorageClient { storage_client } => {
+                storage_client.create_storage_dir().await.expect("Failed to create storage directory");
+            },
+            _ => assert!(false)
+        }
+
+        let sessionless = Sessionless::new();
+        let pub_key = sessionless.public_key();
+        let user_uuid = "test_user_uuid";
+
+        match user_client.clone().update_keys(&pub_key, user_uuid).await {
+            Ok(_) => {
+                let file_exists = tokio::fs::metadata(file_path.clone()).await.is_ok();
+                assert!(file_exists);
+                // read the file and check the contents
+                match tokio::fs::read(file_path.clone()).await {
+                    Ok(data) => {
+                        let result: PubKeys = serde_json::from_slice(data.as_slice()).expect("Failed to deserialize");
+                        let result_user_uuid = result.get_user_uuid(&pub_key.to_string());
+                        assert!(result_user_uuid.is_some());
+                        assert_eq!(user_uuid, result_user_uuid.unwrap().as_str());
+                    },
+                    Err(e) => panic!("Failed to read file: {}", e)
+                }
+            },
+            Err(_) => assert!(false)
+        }
+
+        // TODO add other test cases
 
         // clean up
         tokio::fs::remove_dir_all(dir_path.clone()).await.expect("Failed to remove directory");
