@@ -293,4 +293,48 @@ mod tests {
         // clean up
         tokio::fs::remove_dir_all(dir_path.clone()).await.expect("Failed to remove directory");
     }
+
+    #[tokio::test]
+    async fn test_save_pub_keys() {
+        let current_directory = std::env::current_dir().expect("Failed to get current directory"); 
+        let dir_path = format!("{}/save_pub_keys", current_directory.display());
+        let uri = Uri::builder().path_and_query(dir_path.clone()).build().unwrap();
+
+        let file_path = format!("{}/{}", dir_path, KEYS_STRING);
+        let user_client = UserCLient::new(uri);
+
+        // confirm file doesn't exist before
+        let file_exists = tokio::fs::metadata(file_path.clone()).await.is_ok();
+        assert!(!file_exists);
+
+        // create directory
+        match user_client.clone().client {
+            Client::FileStorageClient { storage_client } => {
+                storage_client.create_storage_dir().await.expect("Failed to create storage directory");
+            },
+            _ => assert!(false)
+        }
+
+        let mut pub_keys = PubKeys::default();
+        let pub_keys = pub_keys.add_user_uuid("test_user_uuid", "test_pub_key");
+
+        match user_client.clone().save_pub_keys(pub_keys.clone()).await {
+            Ok(_) => {
+                let file_exists = tokio::fs::metadata(file_path.clone()).await.is_ok();
+                assert!(file_exists);
+                // read the file and check the contents
+                match tokio::fs::read(file_path.clone()).await {
+                    Ok(data) => {
+                        let result: PubKeys = serde_json::from_slice(data.as_slice()).expect("Failed to deserialize");
+                        assert_eq!(result, *pub_keys);
+                    },
+                    Err(e) => panic!("Failed to read file: {}", e)
+                }
+            },
+            Err(_) => assert!(false)
+        }
+
+        // clean up
+        tokio::fs::remove_dir_all(dir_path.clone()).await.expect("Failed to remove directory");
+    }
 }
