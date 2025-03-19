@@ -19,4 +19,12 @@ impl Response {
     pub fn server_error(message: String) -> Self {
         return Response::Error { code: StatusCode::INTERNAL_SERVER_ERROR.as_u16(), message: message };
     }
+
+    pub fn not_found() -> Self {
+        return Response::Error { code: StatusCode::NOT_FOUND.as_u16(), message: "Not Found".to_string() };
+    }
+
+    pub fn not_acceptable() -> Self {
+        return Response::Error { code: StatusCode::NOT_ACCEPTABLE.as_u16(), message: "Not Acceptable".to_string() };
+    }
 }

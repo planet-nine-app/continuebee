@@ -29,6 +29,7 @@ fn setup_router(server_config: &ServerConfig) -> Router {
     Router::new()
         .route("/heath_check", get(health_check))
         .route("/user/create", post(handlers::create_user_handler))
+        .route("/user/{uuid}", get(handlers::get_user_handler))
         .with_state(app_state)
 }
 
