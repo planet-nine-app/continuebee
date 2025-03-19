@@ -206,7 +206,7 @@ mod tests {
         let dir_path = format!("{}/set_file_doesnt_exist", current_directory.display());
         let uri = Uri::builder().path_and_query(dir_path.clone()).build().unwrap();
 
-        let mut client = FileStorageClient::new(uri);
+        let client = FileStorageClient::new(uri);
 
         let key = "test";
         let value = serde_json::json!({"j": "value"});
@@ -235,7 +235,7 @@ mod tests {
         let dir_path = format!("{}/set_overwrite", current_directory.display());
         let uri = Uri::builder().path_and_query(dir_path.clone()).build().unwrap();
 
-        let mut client = FileStorageClient::new(uri);
+        let client = FileStorageClient::new(uri);
 
         let key = "test";
         let value = serde_json::json!({"j": "value"});
@@ -307,7 +307,7 @@ mod tests {
         let dir_path = format!("{}/set_and_get", current_directory.display());
         let uri = Uri::builder().path_and_query(dir_path.clone()).build().unwrap();
 
-        let mut client = FileStorageClient::new(uri);
+        let client = FileStorageClient::new(uri);
 
         let key = "test";
         let value = serde_json::json!({"j": "value"});

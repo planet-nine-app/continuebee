@@ -109,8 +109,6 @@ impl UserCLient {
 #[cfg(test)]
 mod tests {
 
-    use std::str::FromStr;
-
     use super::*;
     use axum::http::Uri;
     use tokio::io::AsyncWriteExt;
