@@ -187,4 +187,61 @@ mod tests {
         // clean up
         tokio::fs::remove_dir_all(dir_path.clone()).await.expect("Failed to remove directory");
     }
+
+    #[tokio::test]
+    async fn test_get_keys() {
+        let current_directory = std::env::current_dir().expect("Failed to get current directory"); 
+        let dir_path = format!("{}/get_keys", current_directory.display());
+        let uri = Uri::builder().path_and_query(dir_path.clone()).build().unwrap();
+
+        let file_path = format!("{}/{}", dir_path, KEYS_STRING);
+        let user_client = UserCLient::new(uri);
+
+        // confirm file doesn't exist before
+        let file_exists = tokio::fs::metadata(file_path.clone()).await.is_ok();
+        assert!(!file_exists);
+
+        // Keys are default when the file doesn't exist
+        match user_client.get_keys().await {
+            Ok(result) => {
+                assert_eq!(result, PubKeys::default());
+            },
+            Err(_) => assert!(false)
+        }
+
+        // create directory
+        match user_client.clone().client {
+            Client::FileStorageClient { storage_client } => {
+                storage_client.create_storage_dir().await.expect("Failed to create storage directory");
+            },
+            _ => assert!(false)
+        }
+
+        let user_uuid = "test_user_uuid";
+        let pub_key = "test_pub_key";
+
+        let mut pub_keys = PubKeys::default();
+        let pub_keys = pub_keys.add_user_uuid(user_uuid, pub_key);
+        let data = serde_json::to_value(pub_keys.clone()).expect("Failed to serialize");
+
+        // write pub_keys to file with fs::write
+        let mut file = match tokio::fs::File::create_new(file_path).await {
+            Ok(file) => file,
+            Err(e) => panic!("Failed to write to file: {}", e),
+        };
+
+        assert!(file.write_all(serde_json::to_string(&data).expect("Failed to serialize to string").as_bytes()).await.is_ok());
+
+        match user_client.clone().get_keys().await {
+            Ok(result) => {
+                let result_user_uuid = result.get_user_uuid(pub_key);
+                assert!(result_user_uuid.is_some());
+                assert_eq!(user_uuid, result_user_uuid.unwrap().as_str());
+            },
+            Err(_) => assert!(false)
+        };
+
+        // clean up
+        tokio::fs::remove_dir_all(dir_path.clone()).await.expect("Failed to remove directory");
+    }
 }
