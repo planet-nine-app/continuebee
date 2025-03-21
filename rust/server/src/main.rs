@@ -3,7 +3,7 @@ mod storage;
 mod handlers;
 
 use std::sync::Arc;
-use axum::{routing::{get, post}, Router};
+use axum::{routing::{get, post, put}, Router};
 
 use config::{AppState, ServerConfig};
 use storage::UserCLient;
@@ -29,6 +29,7 @@ fn setup_router(server_config: &ServerConfig) -> Router {
         .route("/heath_check", get(health_check))
         .route("/user/create", post(handlers::create_user_handler))
         .route("/user/{uuid}", get(handlers::get_user_handler))
+        .route("/user/update-hash", put(handlers::update_hash_handler))
         .with_state(app_state)
 }
 

@@ -57,16 +57,20 @@ impl UserCLient {
         }
     }
 
-
-    // TODO
-    /* pub async fn update_hash(self, existing_user: &User, new_hash: String) -> anyhow::Result<User> {
-        if let Some(mut user) = self.clone().get_user(&existing_user.uuid).await {
-            user.hash = new_hash;
-            self.clone().put_user(&user).await
+    pub async fn update_hash(&self, existing_user: &User, new_hash: String) -> anyhow::Result<User> {
+        let mut new_user = existing_user.clone();
+        new_user.hash = new_hash;
+        if let Ok(value) = serde_json::to_value(new_user.clone()) {
+            match self.client.set(&UserCLient::key(&new_user.uuid).as_str(), value).await {
+                Ok(_) => {
+                    return Ok(new_user.clone());
+                },
+                Err(e) => Err(e.into()),
+            }
         } else {
-            Err(anyhow::Error::msg("Failed to retrieve existing user"))
+            Err(anyhow::Error::msg("Failed to serialize user"))
         }
-    }*/
+    }
 
     pub async fn delete_user(self, uuid: &str) -> bool {
         self.client.delete(UserCLient::key(uuid).as_str()).await
@@ -373,6 +377,64 @@ mod tests {
         }
 
         // TODO add other test cases
+
+        // clean up
+        cleanup_test_files(&uri.to_string()).await;
+    }
+
+    #[tokio::test]
+    async fn test_update_hash() {
+        let uri = storage_uri("update_hash");
+
+        let initial_uuid = "uuid";
+        let initial_hash = "initial_hash";
+        let initial_pub_key = "initial_pub_key";
+
+        let new_hash = "new_hash";
+
+        let file_path = format!("{}/user:{}", &uri.to_string(), initial_uuid);
+        let user_client = UserCLient::new(uri.clone());
+
+        match user_client.clone().client {
+            Client::FileStorageClient { storage_client } => {
+                storage_client.create_storage_dir().await.expect("Failed to create storage directory");
+            },
+            _ => assert!(false)
+        }
+
+        // confirm file doesn't exist before
+        assert!(!check_path_exists(&file_path).await);
+
+        let user = User::new(Some(initial_uuid.to_string()), initial_pub_key.to_string(), initial_hash.to_string());
+
+        let data= serde_json::to_value(user.clone()).expect("Failed to serialize");
+
+        // write user to file with fs::write
+        let mut file = match tokio::fs::File::create_new(file_path.clone()).await {
+            Ok(file) => file,
+            Err(e) => panic!("Failed to write to file: {}", e),
+        };
+
+        assert!(file.write_all(serde_json::to_string(&data).expect("Failed to serialize to string").as_bytes()).await.is_ok());
+
+        // Update hash and the returned user should have the new hash
+        match user_client.clone().update_hash(&user, new_hash.to_string()).await {
+            Ok(result) => {
+                assert_eq!(result.uuid, initial_uuid);
+                assert_eq!(result.pub_key, initial_pub_key);
+                assert_eq!(result.hash, new_hash);
+
+                // read the file and check the contents
+                match tokio::fs::read(file_path.clone()).await {
+                    Ok(data) => {
+                        let read_user: User = serde_json::from_slice(data.as_slice()).expect("Failed to deserialize");
+                        assert_eq!(result, read_user);
+                    },
+                    Err(e) => panic!("Failed to read file: {}", e)
+                }
+            },
+            Err(_) => assert!(false)
+        };
 
         // clean up
         cleanup_test_files(&uri.to_string()).await;
