@@ -18,3 +18,12 @@ pub struct UpdateHashRequest {
     pub new_hash: String,
     pub signature: String,
 }
+
+#[derive(Deserialize, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DeleteUserRequest {
+    pub timestamp: String,
+    pub user_uuid: String,
+    pub hash: String,
+    pub signature: String,
+}

@@ -31,14 +31,14 @@ pub async fn create_user_handler(
 
         match data.user_client.clone().get_user_uuid(&pub_key).await {
             // If user exists with given pub_key, return back the user_uuid
-            Some(user_uuid) => Json(Response::success(user_uuid)),
+            Some(user_uuid) => Json(Response::user_success(user_uuid)),
             None => {
                 // otherwise, put a new user
                 match data.user_client.clone().put_user(&body.pub_key, &body.hash).await {
                     Ok(user) => {
                         // add pub key with user uuid
                         match data.user_client.clone().update_keys(&pub_key, &user.uuid).await {
-                            Ok(_) => Json(Response::success(user.uuid)),
+                            Ok(_) => Json(Response::user_success(user.uuid)),
                             Err(_) => Json(Response::server_error("Failed to update keys".to_string()))
                         }
                     },

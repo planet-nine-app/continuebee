@@ -44,7 +44,7 @@ pub async fn get_user_handler(
             }
             
             if found_user.hash == hash {
-                return Json(Response::success(found_user.uuid));
+                return Json(Response::user_success(found_user.uuid));
             } else {
                 return Json(Response::not_acceptable());
             }

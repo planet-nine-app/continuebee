@@ -1,3 +1,6 @@
+
+
+
 use std::{str::FromStr, sync::Arc};
 
 use axum::{extract::State, Json};
@@ -5,14 +8,15 @@ use sessionless::{Sessionless, Signature};
 
 use crate::config::AppState;
 
-use super::{Response, UpdateHashRequest};
+use super::{DeleteUserRequest, Response};
 
-
-pub async fn update_hash_handler(
+// Deletes the user from storage and the public key
+pub async fn delete_user_handler(
     State(data): State<Arc<AppState>>,
-    Json(body): Json<UpdateHashRequest>,
+    Json(body): Json<DeleteUserRequest>,
 ) -> Json<Response> {
-    let message = format!("{}{}{}{}", body.timestamp, body.user_uuid, body.hash, body.new_hash);
+
+    let message = format!("{}{}{}", body.timestamp, body.user_uuid, body.hash);
     let sessionless = Sessionless::new();
 
     let sig = match Signature::from_str(body.signature.as_str()) {
@@ -40,8 +44,14 @@ pub async fn update_hash_handler(
         return Json(Response::auth_error());
     }
 
-    match data.user_client.clone().update_hash(&found_user, body.new_hash).await {
-        Ok(new_user) => Json(Response::user_success(new_user.uuid)),
-        Err(_) => Json(Response::server_error("Failed to update hash".to_string()))
+    if data.user_client.clone().delete_user(&found_user.uuid).await {
+        if let Err(_) = data.user_client.clone().remove_key(&pub_key).await {
+            return Json(Response::server_error("Failed to delete key".to_string()))
+        }
+
+        Json(Response::success(202))
+    } else {
+        Json(Response::server_error("Failed to delete user".to_string()))
     }
+
 }

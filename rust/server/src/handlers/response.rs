@@ -4,7 +4,8 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Serialize, Clone, Deserialize)]
 pub enum Response {
     User { user_uuid: String },
-    Error { code: u16, message: String }
+    Error { code: u16, message: String },
+    Success { code: u16 }
 }
 
 impl Response {
@@ -12,7 +13,7 @@ impl Response {
         return Response::Error { code: StatusCode::FORBIDDEN.as_u16(), message: "Auth Error".to_string() };
     }
 
-    pub fn success(user_uuid: String) -> Self {
+    pub fn user_success(user_uuid: String) -> Self {
         return Response::User { user_uuid: user_uuid }
     }
 
@@ -26,5 +27,9 @@ impl Response {
 
     pub fn not_acceptable() -> Self {
         return Response::Error { code: StatusCode::NOT_ACCEPTABLE.as_u16(), message: "Not Acceptable".to_string() };
+    }
+
+    pub fn success(code: u16) -> Self {
+        return Response::Success { code: code };
     }
 }

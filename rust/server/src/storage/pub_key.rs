@@ -24,5 +24,9 @@ impl PubKeys {
     pub fn get_user_uuid(&self, pub_key: &str) -> Option<&String> {
         self.pub_keys.get(pub_key)
     }
+
+    pub fn remove_pub_key(&mut self, pub_key: &str) -> Option<String> {
+        self.pub_keys.remove(pub_key)
+    }
 }
 

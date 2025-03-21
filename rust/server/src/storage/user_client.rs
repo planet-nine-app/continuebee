@@ -106,7 +106,17 @@ impl UserCLient {
             },
             Err(e) => Err(e)
         }
+    }
 
+    pub async fn remove_key(&self, pub_key: &PublicKey) -> anyhow::Result<()> {
+        match self.get_keys().await {
+            Ok(mut pub_keys) => {
+                let pub_key = pub_key.to_string();
+                pub_keys.remove_pub_key(&pub_key);
+                self.save_pub_keys(pub_keys.clone()).await
+            },
+            Err(e) => Err(e)
+        }
     }
 }
 
