@@ -141,4 +141,69 @@ mod tests {
         }
         cleanup_test_files(&stroage_uri.to_string()).await;
     }
+
+    #[tokio::test]
+    async fn test_create_user_handler_auth_error() {
+        let stroage_uri = storage_uri("test_create_user_handler_auth_error");
+        let test_server = setup_test_server(stroage_uri.clone());
+
+        assert!(test_server.is_running());
+        let sessionless = Sessionless::new();
+
+        let pub_key = sessionless.public_key();
+        let timestamp = Utc::now().timestamp().to_string();
+        let hash = "random_hash".to_string();
+
+        let invalid_payload = CreateUserRequest {
+            pub_key: pub_key.to_string(),
+            timestamp: timestamp.clone(),
+            hash: hash.clone(),
+            signature: "invalid_signature".to_string(),
+        };
+
+        let post_path = "/user/create";
+
+        let response = test_server.post(post_path).json(&invalid_payload).await;
+
+        let expected_code = 403;
+
+        // parse as Response
+        let error_response = response.json::<Response>();
+
+        match error_response.clone() {
+            Response::Error { code, message } => {
+                assert_eq!(code, expected_code);
+                assert_eq!(message, "Auth Error");
+            },
+            _ => {
+                assert!(false);
+            }
+        }
+
+        let message = format!("{}{}{}", &timestamp, pub_key, &hash);
+        let signature = sessionless.sign(message);
+
+        let invalid_payload = CreateUserRequest {
+            pub_key: "invalid_pub_key".to_string(),
+            timestamp: timestamp.clone(),
+            hash: hash.clone(),
+            signature: signature.to_string(),
+        };
+
+        let response = test_server.post(post_path).json(&invalid_payload).await;
+
+        // parse as Response
+        let error_response = response.json::<Response>();
+        match error_response.clone() {
+            Response::Error { code, message } => {
+                assert_eq!(code, expected_code);
+                assert_eq!(message, "Auth Error");
+            },
+            _ => {
+                assert!(false);
+            }
+        }
+
+        // TODO handle internal server errors
+    }
 }
