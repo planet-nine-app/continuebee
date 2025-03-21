@@ -23,7 +23,6 @@ fn setup_router(server_config: &ServerConfig) -> Router {
 
     let app_state = Arc::new(AppState {
         user_client: user_client,
-        env: server_config.clone(),
     });
 
     Router::new()

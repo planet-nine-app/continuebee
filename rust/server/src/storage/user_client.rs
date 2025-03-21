@@ -113,15 +113,27 @@ mod tests {
     use axum::http::Uri;
     use tokio::io::AsyncWriteExt;
 
+    fn storage_uri(test_name: &str) -> Uri {
+        let current_directory = std::env::current_dir().expect("Failed to get current directory"); 
+        let storage_uri = format!("{}/{}", current_directory.display(), test_name);
+        Uri::builder().path_and_query(storage_uri.clone()).build().unwrap()
+    }
+
+    async fn check_path_exists(path: &str) -> bool {
+        tokio::fs::metadata(path).await.is_ok()
+    }
+
+    async fn cleanup_test_files(dir: &str) {
+        tokio::fs::remove_dir_all(dir).await.expect("Failed to remove test files");
+    }
+
     #[tokio::test]
     async fn test_get_user() {
-        let current_directory = std::env::current_dir().expect("Failed to get current directory"); 
-        let dir_path = format!("{}/get_user", current_directory.display());
-        let uri = Uri::builder().path_and_query(dir_path.clone()).build().unwrap();
+        let uri = storage_uri("get_user");
 
         let initial_uuid = "uuid";
-        let file_path = format!("{}/user:{}", dir_path, initial_uuid);
-        let user_client = UserCLient::new(uri);
+        let file_path = format!("{}/user:{}", &uri.to_string(), initial_uuid);
+        let user_client = UserCLient::new(uri.clone());
 
         match user_client.clone().client {
             Client::FileStorageClient { storage_client } => {
@@ -131,8 +143,7 @@ mod tests {
         }
 
         // confirm file doesn't exist before
-        let file_exists = tokio::fs::metadata(file_path.clone()).await.is_ok();
-        assert!(!file_exists);
+        assert!(!check_path_exists(&file_path).await);
 
         let user = User::new(Some(initial_uuid.to_string()), "pub_key".to_string(), "hash".to_string());
 
@@ -152,21 +163,18 @@ mod tests {
         };
 
         // clean up
-        tokio::fs::remove_dir_all(dir_path.clone()).await.expect("Failed to remove directory");
+        cleanup_test_files(&uri.to_string()).await;
     }
 
 
     #[tokio::test]
     async fn test_put_user() {
-        let current_directory = std::env::current_dir().expect("Failed to get current directory"); 
-        let dir_path = format!("{}/put_user", current_directory.display());
-        let uri = Uri::builder().path_and_query(dir_path.clone()).build().unwrap();
+        let uri = storage_uri("put_user");
 
-        let user_client = UserCLient::new(uri);
+        let user_client = UserCLient::new(uri.clone());
 
         // check that dir_path doesn't exist
-        let dir_exists = tokio::fs::metadata(dir_path.clone()).await.is_ok();
-        assert!(!dir_exists);
+        check_path_exists(&uri.to_string()).await;
 
         let pub_key = "pub_key";
         let hash = "hash";
@@ -176,26 +184,23 @@ mod tests {
                 assert!(!result.uuid.is_empty());
                 assert_eq!(result.pub_key.to_string(), pub_key.to_string());
                 assert_eq!(result.hash, hash);
-                let file_path = format!("{}/user:{}", dir_path.clone(), result.uuid);
-                let file_exists = tokio::fs::metadata(file_path).await.is_ok();
-                assert!(file_exists);
+                let file_path = format!("{}/user:{}", uri.clone().to_string(), result.uuid);
+                assert!(check_path_exists(&file_path).await);
             },
             Err(_) => assert!(false)
         }
 
         // clean up
-        tokio::fs::remove_dir_all(dir_path.clone()).await.expect("Failed to remove directory");
+        cleanup_test_files(&uri.to_string()).await;
     }
 
     #[tokio::test]
     async fn test_delete_user() {
-        let current_directory = std::env::current_dir().expect("Failed to get current directory"); 
-        let dir_path = format!("{}/delete_user", current_directory.display());
-        let uri = Uri::builder().path_and_query(dir_path.clone()).build().unwrap();
+        let uri = storage_uri("delete_user");
 
         let initial_uuid = "uuid";
-        let file_path = format!("{}/user:{}", dir_path, initial_uuid);
-        let user_client = UserCLient::new(uri);
+        let file_path = format!("{}/user:{}", &uri.to_string(), initial_uuid);
+        let user_client = UserCLient::new(uri.clone());
 
         match user_client.clone().client {
             Client::FileStorageClient { storage_client } => {
@@ -205,8 +210,7 @@ mod tests {
         }
 
         // confirm the file doesn't exist before
-        let file_exists = tokio::fs::metadata(file_path.clone()).await.is_ok();
-        assert!(!file_exists);
+        assert!(!check_path_exists(&file_path).await);
 
         let user = User::new(Some(initial_uuid.to_string()), "pub_key".to_string(), "hash".to_string());
         let data = serde_json::to_value(user.clone()).expect("Failed to serialize");
@@ -220,35 +224,30 @@ mod tests {
         assert!(file.write_all(serde_json::to_string(&data).expect("Failed to serialize to string").as_bytes()).await.is_ok());
 
         // confirm the file exists
-        let file_exists = tokio::fs::metadata(file_path.clone()).await.is_ok();
-        assert!(file_exists);
+        assert!(check_path_exists(&file_path).await);
 
         // delete the user: should be true as the file should be deleted
         assert!(user_client.clone().delete_user(initial_uuid).await);
 
         // confirm the file doesn't exist after
-        let file_exists = tokio::fs::metadata(file_path.clone()).await.is_ok();
-        assert!(!file_exists);
+        assert!(!check_path_exists(&file_path).await);
 
         // try to delete the user again: should be false as the file doesn't exist
         assert!(!user_client.clone().delete_user(initial_uuid).await);
 
         // clean up
-        tokio::fs::remove_dir_all(dir_path.clone()).await.expect("Failed to remove directory");
+        cleanup_test_files(&uri.to_string()).await;
     }
 
     #[tokio::test]
     async fn test_get_keys() {
-        let current_directory = std::env::current_dir().expect("Failed to get current directory"); 
-        let dir_path = format!("{}/get_keys", current_directory.display());
-        let uri = Uri::builder().path_and_query(dir_path.clone()).build().unwrap();
+        let uri = storage_uri("get_keys");
 
-        let file_path = format!("{}/{}", dir_path, KEYS_STRING);
-        let user_client = UserCLient::new(uri);
+        let file_path = format!("{}/{}", &uri.to_string(), KEYS_STRING);
+        let user_client = UserCLient::new(uri.clone());
 
         // confirm file doesn't exist before
-        let file_exists = tokio::fs::metadata(file_path.clone()).await.is_ok();
-        assert!(!file_exists);
+        assert!(!check_path_exists(&file_path).await);
 
         // Keys are default when the file doesn't exist
         match user_client.get_keys().await {
@@ -291,21 +290,18 @@ mod tests {
         };
 
         // clean up
-        tokio::fs::remove_dir_all(dir_path.clone()).await.expect("Failed to remove directory");
+        cleanup_test_files(&uri.to_string()).await;
     }
 
     #[tokio::test]
     async fn test_save_pub_keys() {
-        let current_directory = std::env::current_dir().expect("Failed to get current directory"); 
-        let dir_path = format!("{}/save_pub_keys", current_directory.display());
-        let uri = Uri::builder().path_and_query(dir_path.clone()).build().unwrap();
+        let uri = storage_uri("save_pub_keys");
 
-        let file_path = format!("{}/{}", dir_path, KEYS_STRING);
-        let user_client = UserCLient::new(uri);
+        let file_path = format!("{}/{}", &uri.to_string(), KEYS_STRING);
+        let user_client = UserCLient::new(uri.clone());
 
         // confirm file doesn't exist before
-        let file_exists = tokio::fs::metadata(file_path.clone()).await.is_ok();
-        assert!(!file_exists);
+        assert!(!check_path_exists(&file_path).await);
 
         // create directory
         match user_client.clone().client {
@@ -320,8 +316,7 @@ mod tests {
 
         match user_client.clone().save_pub_keys(pub_keys.clone()).await {
             Ok(_) => {
-                let file_exists = tokio::fs::metadata(file_path.clone()).await.is_ok();
-                assert!(file_exists);
+                assert!(check_path_exists(&file_path).await);
                 // read the file and check the contents
                 match tokio::fs::read(file_path.clone()).await {
                     Ok(data) => {
@@ -335,21 +330,18 @@ mod tests {
         }
 
         // clean up
-        tokio::fs::remove_dir_all(dir_path.clone()).await.expect("Failed to remove directory");
+        cleanup_test_files(&uri.to_string()).await;
     }
 
     #[tokio::test]
     async fn test_update_keys() {
-        let current_directory = std::env::current_dir().expect("Failed to get current directory"); 
-        let dir_path = format!("{}/update_keys", current_directory.display());
-        let uri = Uri::builder().path_and_query(dir_path.clone()).build().unwrap();
+        let uri = storage_uri("update_keys");
 
-        let file_path = format!("{}/{}", dir_path, KEYS_STRING);
-        let user_client = UserCLient::new(uri);
+        let file_path = format!("{}/{}", &uri.to_string(), KEYS_STRING);
+        let user_client = UserCLient::new(uri.clone());
 
         // confirm file doesn't exist before
-        let file_exists = tokio::fs::metadata(file_path.clone()).await.is_ok();
-        assert!(!file_exists);
+        assert!(!check_path_exists(&file_path).await);
 
         // create directory
         match user_client.clone().client {
@@ -365,8 +357,7 @@ mod tests {
 
         match user_client.clone().update_keys(&pub_key, user_uuid).await {
             Ok(_) => {
-                let file_exists = tokio::fs::metadata(file_path.clone()).await.is_ok();
-                assert!(file_exists);
+                assert!(check_path_exists(&file_path).await);
                 // read the file and check the contents
                 match tokio::fs::read(file_path.clone()).await {
                     Ok(data) => {
@@ -384,6 +375,6 @@ mod tests {
         // TODO add other test cases
 
         // clean up
-        tokio::fs::remove_dir_all(dir_path.clone()).await.expect("Failed to remove directory");
+        cleanup_test_files(&uri.to_string()).await;
     }
 }

@@ -51,15 +51,94 @@ pub async fn create_user_handler(
     }
 }
 
+
 #[cfg(test)]
 mod tests {
 
-    use sessionless::PublicKey;
-    use std::str::FromStr;
+    use axum::{http::Uri, routing::post, Router};
+    use axum_test::TestServer;
+    use chrono::Utc;
+    use sessionless::Sessionless;
+    use std::sync::Arc;
 
-    #[test]
-    fn test_pub_key_empty() {
-        let pub_key = PublicKey::from_str("");
-        println!("{:?}", pub_key.is_ok());
+    use crate::{config::AppState, handlers::{create_user_handler, CreateUserRequest, Response}, storage::UserCLient};
+
+    fn storage_uri(test_name: &str) -> Uri {
+        let current_directory = std::env::current_dir().expect("Failed to get current directory"); 
+        let storage_uri = format!("{}/{}", current_directory.display(), test_name);
+        Uri::builder().path_and_query(storage_uri.clone()).build().unwrap()
+    }
+
+    fn setup_test_server(storage_uri: Uri) -> TestServer {
+        let test_user_client = UserCLient::new(storage_uri.clone());
+
+        let test_app_state = Arc::new( AppState {
+            user_client: test_user_client,
+        });
+
+        let app = Router::new()
+            .route("/user/create", post(create_user_handler))
+            .with_state(test_app_state);
+
+        TestServer::new(app).unwrap()
+    }
+
+    async fn check_path_exists(path: &str) -> bool {
+        tokio::fs::metadata(path).await.is_ok()
+    }
+
+    async fn cleanup_test_files(dir: &str) {
+        tokio::fs::remove_dir_all(dir).await.expect("Failed to remove test files");
+    }
+
+    #[tokio::test]
+    async fn test_create_user_handler() {
+        let stroage_uri = storage_uri("test_create_user_handler");
+        let test_server = setup_test_server(stroage_uri.clone());
+
+        assert!(test_server.is_running());
+        let sessionless = Sessionless::new();
+
+        let pub_key = sessionless.public_key();
+        let timestamp = Utc::now().timestamp().to_string();
+        let hash = "random_hash".to_string();
+
+        let message = format!("{}{}{}", timestamp, pub_key, hash);
+        let signature = sessionless.sign(message);
+
+        let payload = CreateUserRequest {
+            pub_key: pub_key.to_string(),
+            timestamp: timestamp,
+            hash: hash,
+            signature: signature.to_string(),
+        };
+
+        let post_path = "/user/create";
+
+        let response = test_server.post(post_path).json(&payload).await;
+
+        assert_eq!(response.clone().status_code(), 200);
+        // get the user_uuid from the response
+        // parse as Response
+        let user_resposne = response.json::<Response>();
+
+        match user_resposne.clone() {
+            Response::User { user_uuid } => {
+                assert_eq!(user_uuid.is_empty(), false);
+                // check that the user file created exists
+                let file_path = format!("{}/user:{}", stroage_uri.to_string(), user_uuid);
+                assert!(check_path_exists(file_path.as_str()).await);
+
+                // check the keys file also exists
+                let keys_file_path = format!("{}/keys", stroage_uri.to_string());
+                assert!(check_path_exists(keys_file_path.as_str()).await);
+
+                // TODO check the keys file has the correct pub_key and user_uuid
+            },
+            _ => {
+                assert!(false);
+            }
+        }
+        cleanup_test_files(&stroage_uri.to_string()).await;
     }
 }

@@ -1,7 +1,7 @@
 use axum::http::StatusCode;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Clone)]
+#[derive(Debug, Serialize, Clone, Deserialize)]
 pub enum Response {
     User { user_uuid: String },
     Error { code: u16, message: String }
