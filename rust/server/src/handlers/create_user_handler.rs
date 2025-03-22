@@ -55,41 +55,11 @@ pub async fn create_user_handler(
 #[cfg(test)]
 mod tests {
 
-    use axum::{http::Uri, routing::post, Router};
-    use axum_test::TestServer;
     use chrono::Utc;
     use sessionless::Sessionless;
-    use std::sync::Arc;
 
-    use crate::{config::AppState, handlers::{create_user_handler, CreateUserRequest, Response}, storage::UserCLient};
-
-    fn storage_uri(test_name: &str) -> Uri {
-        let current_directory = std::env::current_dir().expect("Failed to get current directory"); 
-        let storage_uri = format!("{}/{}", current_directory.display(), test_name);
-        Uri::builder().path_and_query(storage_uri.clone()).build().unwrap()
-    }
-
-    fn setup_test_server(storage_uri: Uri) -> TestServer {
-        let test_user_client = UserCLient::new(storage_uri.clone());
-
-        let test_app_state = Arc::new( AppState {
-            user_client: test_user_client,
-        });
-
-        let app = Router::new()
-            .route("/user/create", post(create_user_handler))
-            .with_state(test_app_state);
-
-        TestServer::new(app).unwrap()
-    }
-
-    async fn check_path_exists(path: &str) -> bool {
-        tokio::fs::metadata(path).await.is_ok()
-    }
-
-    async fn cleanup_test_files(dir: &str) {
-        tokio::fs::remove_dir_all(dir).await.expect("Failed to remove test files");
-    }
+    use crate::handlers::{CreateUserRequest, Response};
+    use crate::test_common::{setup_test_server, storage_uri, check_path_exists, cleanup_test_files};
 
     #[tokio::test]
     async fn test_create_user_handler() {

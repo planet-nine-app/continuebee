@@ -8,6 +8,9 @@ use axum::{routing::{delete, get, post, put}, Router};
 use config::{AppState, ServerConfig};
 use storage::UserCLient;
 
+#[cfg(test)]
+mod test_common;
+
 
 #[tokio::main]
 async fn main() {
