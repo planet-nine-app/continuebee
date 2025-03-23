@@ -75,6 +75,12 @@ console.log("auth error");
       res.status(403);
       return res.send({error: 'auth error'});
     }
+
+    const userCheck = await db.getUserByPublicKey(pubKey);
+    if(userCheck && userCheck.hash === hash) {
+      return res.send(userCheck);
+    }
+
 console.log('putting user');
     const userToPut = {
       pubKey,
