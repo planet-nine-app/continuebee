@@ -3,7 +3,7 @@ use std::{str::FromStr, sync::Arc};
 use axum::{extract::State, Json};
 use sessionless::{secp256k1::PublicKey, Sessionless, Signature};
 
-use crate::config::AppState;
+use crate::{config::AppState, storage::PubKeys};
 
 use super::{CreateUserRequest, Response};
 
@@ -29,15 +29,17 @@ pub async fn create_user_handler(
             return Json(Response::auth_error());
         }
 
-        match data.user_client.clone().get_user_uuid(&pub_key).await {
-            // If user exists with given pub_key, return back the user_uuid
+        let key = PubKeys::key(&body.hash, &body.pub_key);
+        match data.user_client.clone().get_user_uuid(&key).await {
+            // If user exists with given (pub_key + hash), return back the user_uuid
             Some(user_uuid) => Json(Response::user_success(user_uuid)),
             None => {
                 // otherwise, put a new user
-                match data.user_client.clone().put_user(&body.pub_key, &body.hash).await {
+                let new_uuid = Sessionless::generate_uuid();
+                match data.user_client.clone().put_user(&new_uuid.to_string(), &body.pub_key, &body.hash).await {
                     Ok(user) => {
-                        // add pub key with user uuid
-                        match data.user_client.clone().update_keys(&pub_key, &user.uuid).await {
+                        // add pub key + hash with user uuid
+                        match data.user_client.clone().update_keys(&key, &user.uuid).await {
                             Ok(_) => Json(Response::user_success(user.uuid)),
                             Err(_) => Json(Response::server_error("Failed to update keys".to_string()))
                         }
@@ -59,7 +61,7 @@ mod tests {
     use sessionless::Sessionless;
 
     use crate::handlers::{CreateUserRequest, Response};
-    use crate::test_common::{setup_test_server, storage_uri, check_path_exists, cleanup_test_files};
+    use crate::test_common::{self, check_path_exists, cleanup_test_files, setup_test_server, storage_uri};
 
     #[tokio::test]
     async fn test_create_user_handler() {
@@ -83,9 +85,8 @@ mod tests {
             signature: signature.to_string(),
         };
 
-        let post_path = "/user/create";
 
-        let response = test_server.post(post_path).json(&payload).await;
+        let response = test_server.post(test_common::USER_CREATE_PATH).json(&payload).await;
 
         assert_eq!(response.clone().status_code(), 200);
         // get the user_uuid from the response
@@ -103,7 +104,7 @@ mod tests {
                 let keys_file_path = format!("{}/keys", stroage_uri.to_string());
                 assert!(check_path_exists(keys_file_path.as_str()).await);
 
-                // TODO check the keys file has the correct pub_key and user_uuid
+                // TODO check the keys file has the correct pub_key + hash  and user_uuid
             },
             _ => {
                 assert!(false);

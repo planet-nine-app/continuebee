@@ -5,6 +5,10 @@ use axum_test::TestServer;
 
 use crate::{config::AppState, handlers, storage::UserCLient};
 
+pub static USER_CREATE_PATH: &str = "/user/create";
+pub static USER_UPDATE_HASH_PATH: &str = "/user/update-hash";
+pub static USER_DELETE_PATH: &str = "/user/delete";
+pub static USER_GET_PATH: &str = "/user/{uuid}";
 
 pub fn storage_uri(test_name: &str) -> Uri {
     let current_directory = std::env::current_dir().expect("Failed to get current directory"); 
@@ -20,10 +24,10 @@ fn test_router(storage_uri: Uri) -> Router {
     });
 
     Router::new()
-        .route("/user/create", post(handlers::create_user_handler))
-        .route("/user/{uuid}", get(handlers::get_user_handler))
-        .route("user/update-hash", put(handlers::update_hash_handler))
-        .route("/user/delete", delete(handlers::delete_user_handler))
+        .route(&USER_CREATE_PATH, post(handlers::create_user_handler))
+        .route(&USER_GET_PATH, get(handlers::get_user_handler))
+        .route(&USER_UPDATE_HASH_PATH, put(handlers::update_hash_handler))
+        .route(&USER_DELETE_PATH, delete(handlers::delete_user_handler))
         .with_state(test_app_state)
 }
 

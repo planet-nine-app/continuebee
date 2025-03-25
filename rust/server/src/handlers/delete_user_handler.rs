@@ -6,11 +6,11 @@ use std::{str::FromStr, sync::Arc};
 use axum::{extract::State, Json};
 use sessionless::{Sessionless, Signature};
 
-use crate::config::AppState;
+use crate::{config::AppState, storage::PubKeys};
 
 use super::{DeleteUserRequest, Response};
 
-// Deletes the user from storage and the public key
+// Deletes the user from storage and the public key + hash
 pub async fn delete_user_handler(
     State(data): State<Arc<AppState>>,
     Json(body): Json<DeleteUserRequest>,
@@ -44,8 +44,9 @@ pub async fn delete_user_handler(
         return Json(Response::auth_error());
     }
 
+    let key = PubKeys::key(&body.hash, &pub_key.to_string());
     if data.user_client.clone().delete_user(&found_user.uuid).await {
-        if let Err(_) = data.user_client.clone().remove_key(&pub_key).await {
+        if let Err(_) = data.user_client.clone().remove_key(&key).await {
             return Json(Response::server_error("Failed to delete key".to_string()))
         }
 

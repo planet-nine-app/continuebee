@@ -52,3 +52,70 @@ pub async fn get_user_handler(
         None => Json(Response::not_found())
      }
 }
+
+#[cfg(test)]
+mod tests {
+    use chrono::Utc;
+    use sessionless::Sessionless;
+    use tokio::io::AsyncWriteExt;
+
+    use crate::{handlers::{QueryParams, Response}, storage::User, test_common::{cleanup_test_files, setup_test_server, storage_uri}};
+
+
+    #[tokio::test]
+    async fn test_get_user_handler() {
+        let inital_uuid = "1234";
+        let initial_hash = "initial_hash";
+        let timestamp = Utc::now().timestamp().to_string();
+        let get_user_path = format!("/user/{}", inital_uuid);
+
+        let storage_uri = storage_uri("test_get_user_handler");
+        let test_server = setup_test_server(storage_uri.clone());
+        let file_path = format!("{}/user:{}", &storage_uri.to_string(), inital_uuid);
+
+        assert!(test_server.is_running());
+        let sessionless = Sessionless::new();
+        let pub_key = sessionless.public_key();
+
+        let user_to_write = User::new(Some(inital_uuid.to_string()), pub_key.to_string(), initial_hash.to_string());
+
+        // create directory
+        assert!(tokio::fs::create_dir_all(&storage_uri.to_string()).await.is_ok());
+
+        // write user to file using tokio
+        let data = serde_json::to_value(&user_to_write).unwrap();
+        let mut file = match tokio::fs::File::create_new(file_path).await {
+            Ok(f) => f,
+            Err(e) => {
+
+                panic!("Failed to create file {}", e);
+            }
+        };
+
+        assert!(file.write_all(data.to_string().as_bytes()).await.is_ok());
+
+        let message = format!("{}{}{}", timestamp, &inital_uuid, initial_hash);
+        let signature = sessionless.sign(message);
+
+        let query_param = QueryParams {
+            timestamp: timestamp.to_string(),
+            hash: initial_hash.to_string(),
+            signature: signature.to_string()
+        };
+
+        let response = test_server.get(&get_user_path).add_query_params(query_param).await;
+        assert_eq!(response.status_code(), 200);
+        let user_response = response.json::<Response>();
+        match user_response {
+            Response::User { user_uuid } => {
+                assert_eq!(user_uuid, inital_uuid);
+            },
+            _ => {
+                assert!(false);
+            }
+        }
+        
+        // clean up test files
+        cleanup_test_files(&storage_uri.to_string()).await;
+    }
+}

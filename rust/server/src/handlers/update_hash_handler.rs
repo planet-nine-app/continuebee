@@ -40,7 +40,7 @@ pub async fn update_hash_handler(
         return Json(Response::auth_error());
     }
 
-    match data.user_client.clone().update_hash(&found_user, body.new_hash).await {
+    match data.user_client.put_user(&found_user.uuid, &pub_key.to_string(), &body.new_hash).await {
         Ok(new_user) => Json(Response::user_success(new_user.uuid)),
         Err(_) => Json(Response::server_error("Failed to update hash".to_string()))
     }
