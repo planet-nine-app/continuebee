@@ -2,8 +2,9 @@ use std::sync::Arc;
 
 use axum::{http::Uri, routing::{delete, get, post, put}, Router};
 use axum_test::TestServer;
+use tokio::io::AsyncWriteExt;
 
-use crate::{config::AppState, handlers, storage::UserCLient};
+use crate::{config::AppState, handlers, storage::{User, UserCLient}};
 
 pub static USER_CREATE_PATH: &str = "/user/create";
 pub static USER_UPDATE_HASH_PATH: &str = "/user/update-hash";
@@ -35,6 +36,22 @@ pub fn setup_test_server(storage_uri: Uri) -> TestServer {
     let router = test_router(storage_uri);
 
     TestServer::new(router).unwrap()
+}
+
+pub async fn write_user(dir_path: &str, uuid: &str, pub_key: &str, hash: &str) -> bool {
+    let user = User::new(Some(uuid.to_string()), pub_key.to_string(), hash.to_string());
+    let data = serde_json::to_value(&user).unwrap();
+
+    let file_path = format!("{}/user:{}", &dir_path, uuid);
+    let mut file = match tokio::fs::File::create_new(file_path).await {
+        Ok(f) => f,
+        Err(e) => {
+
+            panic!("Failed to create file {}", e);
+        }
+    };
+
+    file.write_all(data.to_string().as_bytes()).await.is_ok()
 }
 
 pub async fn check_path_exists(path: &str) -> bool {

@@ -57,9 +57,8 @@ pub async fn get_user_handler(
 mod tests {
     use chrono::Utc;
     use sessionless::Sessionless;
-    use tokio::io::AsyncWriteExt;
 
-    use crate::{handlers::{QueryParams, Response}, storage::User, test_common::{cleanup_test_files, setup_test_server, storage_uri}};
+    use crate::{handlers::{QueryParams, Response}, test_common::{cleanup_test_files, setup_test_server, storage_uri, write_user}};
 
 
     #[tokio::test]
@@ -71,28 +70,17 @@ mod tests {
 
         let storage_uri = storage_uri("test_get_user_handler");
         let test_server = setup_test_server(storage_uri.clone());
-        let file_path = format!("{}/user:{}", &storage_uri.to_string(), inital_uuid);
 
         assert!(test_server.is_running());
         let sessionless = Sessionless::new();
         let pub_key = sessionless.public_key();
 
-        let user_to_write = User::new(Some(inital_uuid.to_string()), pub_key.to_string(), initial_hash.to_string());
 
         // create directory
         assert!(tokio::fs::create_dir_all(&storage_uri.to_string()).await.is_ok());
 
-        // write user to file using tokio
-        let data = serde_json::to_value(&user_to_write).unwrap();
-        let mut file = match tokio::fs::File::create_new(file_path).await {
-            Ok(f) => f,
-            Err(e) => {
-
-                panic!("Failed to create file {}", e);
-            }
-        };
-
-        assert!(file.write_all(data.to_string().as_bytes()).await.is_ok());
+        // write user to file
+        assert!(write_user(&storage_uri.to_string(), inital_uuid, &pub_key.to_string(), initial_hash).await);
 
         let message = format!("{}{}{}", timestamp, &inital_uuid, initial_hash);
         let signature = sessionless.sign(message);
