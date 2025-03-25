@@ -93,6 +93,8 @@ impl StorageClient for FileStorageClient {
 
 #[cfg(test)]
 mod tests {
+    use crate::test_common::{check_path_exists, cleanup_test_files};
+
     use super::*;
     use axum::http::Uri;
 
@@ -129,7 +131,7 @@ mod tests {
         // TODO: try to create a directory that we don't have permission to create
 
         // clean up
-        tokio::fs::remove_dir(dir_path.clone()).await.expect("Failed to remove directory");
+        cleanup_test_files(&dir_path).await;
     }
 
     #[tokio::test]
@@ -144,8 +146,7 @@ mod tests {
         let value = serde_json::json!({"j": "value"});
 
         // confirm file doesn't exist before
-        let file_exists = tokio::fs::metadata(client.file_path(key)).await.is_ok();
-        assert!(!file_exists);
+        assert!(!check_path_exists(&client.file_path(key)).await);
 
         client.write(key, value.clone()).await.expect("Failed to write new file");
 
@@ -156,7 +157,7 @@ mod tests {
         assert_eq!(data, value);
 
         // clean up
-        tokio::fs::remove_dir_all(dir_path.clone()).await.expect("Failed to remove directory");
+        cleanup_test_files(&dir_path).await;
     }
 
     #[tokio::test]
@@ -182,8 +183,7 @@ mod tests {
         assert!(file.write_all(serde_json::to_string(&value).expect("Failed to serialize").as_bytes()).await.is_ok());
         
         // confirm that the file exists
-        let file_exists = tokio::fs::metadata(client.file_path(key)).await.is_ok();
-        assert!(file_exists);
+        assert!(check_path_exists(&client.file_path(key)).await);
 
         // now call write as it alraedy should exist
         // write different value as it should overwrite
@@ -197,7 +197,7 @@ mod tests {
         assert_eq!(data, new_value);
 
         // clean up
-        tokio::fs::remove_dir_all(dir_path.clone()).await.expect("Failed to remove directory");
+        cleanup_test_files(&dir_path).await;
     }
 
     #[tokio::test]
@@ -212,8 +212,7 @@ mod tests {
         let value = serde_json::json!({"j": "value"});
 
         // confirm that the file doesn't exists
-        let file_exists = tokio::fs::metadata(client.file_path(key)).await.is_ok();
-        assert!(!file_exists);
+        assert!(!check_path_exists(&client.file_path(key)).await);
 
         let result = client.set(key, value.clone()).await;
         assert!(result.is_ok());
@@ -226,7 +225,7 @@ mod tests {
 
 
         // clean up
-        tokio::fs::remove_dir_all(dir_path.clone()).await.expect("Failed to remove directory");
+        cleanup_test_files(&dir_path).await;
     }
 
     #[tokio::test]
@@ -252,8 +251,7 @@ mod tests {
         assert!(file.write_all(serde_json::to_string(&value).expect("Failed to serialize").as_bytes()).await.is_ok());
         
         // confirm that the file exists
-        let file_exists = tokio::fs::metadata(client.file_path(key)).await.is_ok();
-        assert!(file_exists);
+        assert!(check_path_exists(&client.file_path(key)).await);
 
         // now call write as it alraedy should exist
         // write different value as it should overwrite
@@ -267,7 +265,7 @@ mod tests {
         assert_eq!(data, new_value);
 
         // clean up
-        tokio::fs::remove_dir_all(dir_path.clone()).await.expect("Failed to remove directory");
+        cleanup_test_files(&dir_path).await;
     }
 
     #[tokio::test]
@@ -297,7 +295,7 @@ mod tests {
         assert_eq!(data, value);
 
         // clean up
-        tokio::fs::remove_dir_all(dir_path.clone()).await.expect("Failed to remove directory");
+        cleanup_test_files(&dir_path).await;
     }
 
     #[tokio::test]
@@ -320,7 +318,7 @@ mod tests {
         };
 
         // clean up
-        tokio::fs::remove_dir_all(dir_path.clone()).await.expect("Failed to remove directory");
+        cleanup_test_files(&dir_path).await;
     }
 
     #[tokio::test]
@@ -343,21 +341,19 @@ mod tests {
         }
 
         // confirm that the file exists
-        let file_exists = tokio::fs::metadata(client.file_path(key)).await.is_ok();
-        assert!(file_exists);
+        assert!(check_path_exists(&client.file_path(key)).await);
 
         // delete
         assert!(client.delete(key).await);
 
         // file shouldn't exist
-        let file_exists = tokio::fs::metadata(client.file_path(key)).await.is_ok();
-        assert!(!file_exists);
+        assert!(!check_path_exists(&client.file_path(key)).await);
 
         // delete: should be false
         assert!(!client.delete(key).await);
 
         // clean up
-        tokio::fs::remove_dir_all(dir_path.clone()).await.expect("Failed to remove directory");
+        cleanup_test_files(&dir_path).await;
     }
 
 }
