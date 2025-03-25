@@ -103,12 +103,46 @@ mod tests {
             signature: signature.to_string()
         };
 
-        let response = test_server.get(&get_user_path).add_query_params(query_param).await;
+        let response = test_server.get(&get_user_path).add_query_params(&query_param).await;
         assert_eq!(response.status_code(), 200);
         let user_response = response.json::<Response>();
         match user_response {
             Response::User { user_uuid } => {
                 assert_eq!(user_uuid, inital_uuid);
+            },
+            _ => {
+                assert!(false);
+            }
+        }
+
+        // get a user that does not exist
+        let get_user_path = format!("/user/{}", "non_existent_user");
+        let response = test_server.get(&get_user_path).add_query_params(&query_param).await;
+        let user_response = response.json::<Response>();
+        match user_response {
+            Response::Error { code , message } => {
+                assert_eq!(code, 404);
+                assert_eq!(message, "Not Found");
+            },
+            _ => {
+                assert!(false);
+            }
+        }
+
+        // get a user but have the wrong hash
+        let get_user_path = format!("/user/{}", inital_uuid);
+        let wrong_hash = "wrong_hash";
+        let query_param = QueryParams {
+            timestamp: timestamp.to_string(),
+            hash: wrong_hash.to_string(),
+            signature: signature.to_string()
+        };
+        let response = test_server.get(&get_user_path).add_query_params(&query_param).await;
+        let user_response = response.json::<Response>();
+        match user_response {
+            Response::Error { code , message } => {
+                assert_eq!(code, 403);
+                assert_eq!(message, "Auth Error");
             },
             _ => {
                 assert!(false);
