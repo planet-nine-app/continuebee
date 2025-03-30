@@ -37,7 +37,7 @@ const bootstrap = async () => {
       spellbooks
     };
 
-    if(!continuebee.fountUUID || !continuebee.bdoUUID || !spellbooks || spellbooks.length === 0) {
+    if(!continuebee.fountUUID || !continuebee.bdoUUID || !spellbooks) {
 console.log(continuebee.fountUUID, continuebee.bdoUUID, spellbooks);
       throw new Error('bootstrap failed');
     }
