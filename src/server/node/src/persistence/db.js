@@ -14,7 +14,7 @@ const db = {
 
   getUserByPublicKey: async (pubKey) => {
     const uuid = await client.get(`pub_key:${pubKey}`);
-    const user = await getUser(uuid);
+    const user = await db.getUser(uuid);
     return user;
   },
 
