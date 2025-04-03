@@ -37,7 +37,7 @@ const bootstrap = async () => {
       spellbooks
     };
 
-    if(!continuebee.fountUUID || !continuebee.bdoUUID || !spellbooks || spellbooks.length === 0) {
+    if(!continuebee.fountUUID || !continuebee.bdoUUID || !spellbooks) {
 console.log(continuebee.fountUUID, continuebee.bdoUUID, spellbooks);
       throw new Error('bootstrap failed');
     }
@@ -49,7 +49,7 @@ console.warn(err);
   }
 };
 
-repeat(bootstrap);
+//repeat(bootstrap);
 
 app.use((req, res, next) => {
   const requestTime = +req.query.timestamp || +req.body.timestamp;
@@ -71,10 +71,16 @@ console.log(body);
     const signature = req.body.signature;
    
     if(!signature || !sessionless.verifySignature(signature, message, pubKey)) {
-console.log("auth error");
+console.log("auth error with", signature, message, pubKey);
       res.status(403);
       return res.send({error: 'auth error'});
     }
+
+    const userCheck = await db.getUserByPublicKey(pubKey);
+    if(userCheck && userCheck.hash === hash) {
+      return res.send(userCheck);
+    }
+
 console.log('putting user');
     const userToPut = {
       pubKey,
@@ -85,6 +91,7 @@ console.log('putting user');
 console.log('sending user', foundUser);
     res.send(foundUser);
   } catch(err) {
+console.warn(err);
     res.status(404);
     res.send({ error: 'Not Found' });
   }

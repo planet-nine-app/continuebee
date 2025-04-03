@@ -12,10 +12,17 @@ const db = {
     return parsedUser; 
   },
 
+  getUserByPublicKey: async (pubKey) => {
+    const uuid = await client.get(`pub_key:${pubKey}`);
+    const user = await db.getUser(uuid);
+    return user;
+  },
+
   putUser: async (user) => {
     const uuid = sessionless.generateUUID();
     user.userUUID = uuid;
     await client.set(`user:${uuid}`, JSON.stringify(user));
+    await client.set(`pub_key:${user.pubKey}`, uuid);
     const userToReturn = JSON.parse(JSON.stringify(user));
     return userToReturn;
   },
