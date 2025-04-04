@@ -61,12 +61,13 @@ mod tests {
     use sessionless::Sessionless;
 
     use crate::handlers::{CreateUserRequest, Response};
-    use crate::test_common::{self, check_path_exists, cleanup_test_files, setup_test_server, storage_uri};
+    use crate::storage::PubKeys;
+    use crate::test_common::{self, check_path_exists, cleanup_test_files, read_keys, setup_test_server, storage_uri};
 
     #[tokio::test]
     async fn test_create_user_handler() {
-        let stroage_uri = storage_uri("test_create_user_handler");
-        let test_server = setup_test_server(stroage_uri.clone());
+        let storage_uri = storage_uri("test_create_user_handler");
+        let test_server = setup_test_server(storage_uri.clone());
 
         assert!(test_server.is_running());
         let sessionless = Sessionless::new();
@@ -81,7 +82,7 @@ mod tests {
         let payload = CreateUserRequest {
             pub_key: pub_key.to_string(),
             timestamp: timestamp,
-            hash: hash,
+            hash: hash.clone(),
             signature: signature.to_string(),
         };
 
@@ -97,26 +98,31 @@ mod tests {
             Response::User { user_uuid } => {
                 assert_eq!(user_uuid.is_empty(), false);
                 // check that the user file created exists
-                let file_path = format!("{}/user:{}", stroage_uri.to_string(), user_uuid);
+                let file_path = format!("{}/user:{}", storage_uri.to_string(), user_uuid);
                 assert!(check_path_exists(file_path.as_str()).await);
 
                 // check the keys file also exists
-                let keys_file_path = format!("{}/keys", stroage_uri.to_string());
+                let keys_file_path = format!("{}/keys", storage_uri.to_string());
                 assert!(check_path_exists(keys_file_path.as_str()).await);
 
                 // TODO check the keys file has the correct pub_key + hash  and user_uuid
+                let key = PubKeys::key(&hash.clone(), &pub_key.to_string());
+                let pub_keys = read_keys(&storage_uri.to_string()).await.expect("Failed to read keys");
+                assert!(pub_keys.num_keys() == 1);
+                assert!(pub_keys.get_user_uuid(key.as_str()).is_some());
+                assert_eq!(pub_keys.get_user_uuid(key.as_str()).unwrap(), &user_uuid);
             },
             _ => {
                 assert!(false);
             }
         }
-        cleanup_test_files(&stroage_uri.to_string()).await;
+        cleanup_test_files(&storage_uri.to_string()).await;
     }
 
     #[tokio::test]
     async fn test_create_user_handler_auth_error() {
-        let stroage_uri = storage_uri("test_create_user_handler_auth_error");
-        let test_server = setup_test_server(stroage_uri.clone());
+        let storage_uri = storage_uri("test_create_user_handler_auth_error");
+        let test_server = setup_test_server(storage_uri.clone());
 
         assert!(test_server.is_running());
         let sessionless = Sessionless::new();

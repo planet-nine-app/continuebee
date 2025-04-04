@@ -4,7 +4,7 @@ use axum::{http::Uri, routing::{delete, get, post, put}, Router};
 use axum_test::TestServer;
 use tokio::io::AsyncWriteExt;
 
-use crate::{config::AppState, handlers, storage::{User, UserCLient}};
+use crate::{config::AppState, handlers, storage::{PubKeys, User, UserClient}};
 
 pub static USER_CREATE_PATH: &str = "/user/create";
 pub static USER_UPDATE_HASH_PATH: &str = "/user/update-hash";
@@ -18,7 +18,7 @@ pub fn storage_uri(test_name: &str) -> Uri {
 }
 
 fn test_router(storage_uri: Uri) -> Router {
-    let test_user_client = UserCLient::new(storage_uri.clone());
+    let test_user_client = UserClient::new(storage_uri.clone());
 
     let test_app_state = Arc::new(AppState {
         user_client: test_user_client,
@@ -52,6 +52,29 @@ pub async fn write_user(dir_path: &str, uuid: &str, pub_key: &str, hash: &str) -
     };
 
     file.write_all(data.to_string().as_bytes()).await.is_ok()
+}
+
+pub async fn write_keys(dir_path: &str, pub_keys: &PubKeys) -> bool {
+    let data = serde_json::to_value(pub_keys).unwrap();
+
+    let file_path = format!("{}/keys", &dir_path);
+    let mut file = match tokio::fs::File::create_new(file_path).await {
+        Ok(f) => f,
+        Err(e) => {
+            panic!("Failed to create file {}", e);
+        }
+    };
+
+    file.write_all(data.to_string().as_bytes()).await.is_ok()
+}
+
+pub async fn read_keys(dir_path: &str) -> anyhow::Result<PubKeys> {
+
+    let file_path = format!("{}/keys", &dir_path);
+    let data = tokio::fs::read_to_string(file_path).await?;
+
+    let pub_keys: PubKeys = serde_json::from_str(&data)?;
+    Ok(pub_keys)
 }
 
 pub async fn check_path_exists(path: &str) -> bool {

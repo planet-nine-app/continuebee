@@ -62,7 +62,7 @@ mod tests {
     use chrono::Utc;
     use sessionless::Sessionless;
 
-    use crate::test_common::{setup_test_server, storage_uri, write_user};
+    use crate::{handlers::{DeleteUserRequest, Response}, storage::PubKeys, test_common::{check_path_exists, cleanup_test_files, read_keys, setup_test_server, storage_uri, write_keys, write_user, USER_DELETE_PATH}};
 
 
     #[tokio::test]
@@ -88,8 +88,57 @@ mod tests {
         assert!(tokio::fs::create_dir_all(&storage_uri.to_string()).await.is_ok());
 
         // write two users to file
+        assert!(write_user(&storage_uri.to_string(), initial_uuid_1, &pub_key.to_string(), initial_hash_1).await);
+        assert!(write_user(&storage_uri.to_string(), initial_uuid_2, &pub_key.to_string(), initial_hash_2).await);
         // and write keys
-        assert!(write_user(&user_file_path_1, initial_uuid_1, &pub_key.to_string(), initial_hash_1).await);
-        assert!(write_user(&user_file_path_2, initial_uuid_2, &pub_key.to_string(), initial_hash_1).await);
+        let mut pub_keys = PubKeys::default();
+        let key_1 = PubKeys::key(initial_hash_1, &pub_key.to_string());
+        let key_2 = PubKeys::key(initial_hash_2, &pub_key.to_string());
+        pub_keys
+            .add_user_uuid(initial_uuid_1, &key_1)
+            .add_user_uuid(initial_uuid_2, &key_2);
+
+        assert!(write_keys(&storage_uri.to_string(), &pub_keys).await);
+
+        // check if the files exist
+        assert!(check_path_exists(&user_file_path_1).await);
+        assert!(check_path_exists(&user_file_path_2).await);
+        // check if keys exist
+        assert!(check_path_exists(&key_file_path).await);
+
+        let message = format!("{}{}{}", timestamp, initial_uuid_1, initial_hash_1);
+        let signature = sessionless.sign(message);
+        // delete the first user
+        let payload = DeleteUserRequest {
+            timestamp: timestamp.clone(),
+            user_uuid: initial_uuid_1.to_string(),
+            hash: initial_hash_1.to_string(),
+            signature: signature.to_string(),
+        };
+
+        let response = test_server.delete(USER_DELETE_PATH).json(&payload).await;
+        let delete_response = response.json::<Response>();
+        match delete_response.clone() {
+            Response::Success { code } => {
+                assert_eq!(code, 202);
+                // check if the first user file exists
+                assert!(!check_path_exists(&user_file_path_1).await);
+                // check if the second user file exists
+                assert!(check_path_exists(&user_file_path_2).await);
+                // check if keys exist
+                assert!(check_path_exists(&key_file_path).await);
+                // check that only one key remains
+                let pub_keys = read_keys(&storage_uri.to_string()).await.expect("Failed to read keys");
+                assert_eq!(pub_keys.num_keys(), 1);
+                assert!(pub_keys.get_user_uuid(key_2.as_str()).is_some());
+                assert!(pub_keys.get_user_uuid(key_1.as_str()).is_none());
+            },
+            _ => {
+                assert!(false);
+            }
+        }
+
+        // clean up
+        cleanup_test_files(&storage_uri.to_string()).await;
     }
 }

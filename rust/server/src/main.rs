@@ -6,7 +6,7 @@ use std::sync::Arc;
 use axum::{routing::{delete, get, post, put}, Router};
 
 use config::{AppState, ServerConfig};
-use storage::UserCLient;
+use storage::UserClient;
 
 #[cfg(test)]
 mod test_common;
@@ -22,7 +22,7 @@ async fn main() {
 }
 
 fn setup_router(server_config: &ServerConfig) -> Router {
-    let user_client = UserCLient::new(server_config.storage_uri.clone());
+    let user_client = UserClient::new(server_config.storage_uri.clone());
 
     let app_state = Arc::new(AppState {
         user_client: user_client,

@@ -7,11 +7,11 @@ static USER_STRING: &str = "user";
 static KEYS_STRING: &str = "keys";
 
 #[derive(Debug, Clone)]
-pub struct UserCLient {
+pub struct UserClient {
     pub client: Client
 }
 
-impl UserCLient {
+impl UserClient {
     pub fn new(storage_uri: Uri) -> Self {
         Self { client: Client::new(storage_uri) }
     }
@@ -28,7 +28,7 @@ impl UserCLient {
     }
 
     pub async fn get_user(self, uuid: impl AsRef<str>) -> Option<User> {
-        match self.client.get(UserCLient::user_key(uuid.as_ref()).as_str()).await {
+        match self.client.get(UserClient::user_key(uuid.as_ref()).as_str()).await {
             Some(value) => {
                 match serde_json::from_value(value) {
                     Ok(user) => Some(user),
@@ -44,7 +44,7 @@ impl UserCLient {
     pub async fn put_user(&self, uuid: &str, pub_key: &str, hash: &str) -> anyhow::Result<User> {
         let user = User::new(Some(uuid.to_string()), pub_key.to_string(), hash.to_string());
         if let Ok(value) = serde_json::to_value(user.clone()) {
-            match self.client.set(&UserCLient::user_key(&user.uuid).as_str(), value).await {
+            match self.client.set(&UserClient::user_key(&user.uuid).as_str(), value).await {
                 Ok(_) => {
                     return Ok(user.clone());
                 },
@@ -56,7 +56,7 @@ impl UserCLient {
     }
 
     pub async fn delete_user(self, uuid: &str) -> bool {
-        self.client.delete(UserCLient::user_key(uuid).as_str()).await
+        self.client.delete(UserClient::user_key(uuid).as_str()).await
     }
 
     pub async fn save_pub_keys(&self, keys: PubKeys) -> anyhow::Result<()> {
@@ -116,7 +116,7 @@ mod tests {
 
         let initial_uuid = "uuid";
         let file_path = format!("{}/user:{}", &uri.to_string(), initial_uuid);
-        let user_client = UserCLient::new(uri.clone());
+        let user_client = UserClient::new(uri.clone());
 
         match user_client.clone().client {
             Client::FileStorageClient { storage_client } => {
@@ -154,7 +154,7 @@ mod tests {
     async fn test_put_user() {
         let uri = storage_uri("put_user");
 
-        let user_client = UserCLient::new(uri.clone());
+        let user_client = UserClient::new(uri.clone());
 
         // check that dir_path doesn't exist
         check_path_exists(&uri.to_string()).await;
@@ -196,7 +196,7 @@ mod tests {
 
         let initial_uuid = "uuid";
         let file_path = format!("{}/user:{}", &uri.to_string(), initial_uuid);
-        let user_client = UserCLient::new(uri.clone());
+        let user_client = UserClient::new(uri.clone());
 
         match user_client.clone().client {
             Client::FileStorageClient { storage_client } => {
@@ -240,7 +240,7 @@ mod tests {
         let uri = storage_uri("get_keys");
 
         let file_path = format!("{}/{}", &uri.to_string(), KEYS_STRING);
-        let user_client = UserCLient::new(uri.clone());
+        let user_client = UserClient::new(uri.clone());
 
         // confirm file doesn't exist before
         assert!(!check_path_exists(&file_path).await);
@@ -294,7 +294,7 @@ mod tests {
         let uri = storage_uri("save_pub_keys");
 
         let file_path = format!("{}/{}", &uri.to_string(), KEYS_STRING);
-        let user_client = UserCLient::new(uri.clone());
+        let user_client = UserClient::new(uri.clone());
 
         // confirm file doesn't exist before
         assert!(!check_path_exists(&file_path).await);
@@ -334,7 +334,7 @@ mod tests {
         let uri = storage_uri("update_keys");
 
         let file_path = format!("{}/{}", &uri.to_string(), KEYS_STRING);
-        let user_client = UserCLient::new(uri.clone());
+        let user_client = UserClient::new(uri.clone());
 
         // confirm file doesn't exist before
         assert!(!check_path_exists(&file_path).await);
