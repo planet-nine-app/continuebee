@@ -54,6 +54,14 @@ pub async fn write_user(dir_path: &str, uuid: &str, pub_key: &str, hash: &str) -
     file.write_all(data.to_string().as_bytes()).await.is_ok()
 }
 
+pub async fn read_user(dir_path: &str, uuid: &str) -> anyhow::Result<User> {
+    let file_path = format!("{}/user:{}", &dir_path, uuid);
+    let data = tokio::fs::read_to_string(file_path).await?;
+
+    let user: User = serde_json::from_str(&data)?;
+    Ok(user)
+}
+
 pub async fn write_keys(dir_path: &str, pub_keys: &PubKeys) -> bool {
     let data = serde_json::to_value(pub_keys).unwrap();
 
