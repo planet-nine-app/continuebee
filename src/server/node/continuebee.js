@@ -49,7 +49,7 @@ console.warn(err);
   }
 };
 
-//repeat(bootstrap);
+repeat(bootstrap);
 
 app.use((req, res, next) => {
   const requestTime = +req.query.timestamp || +req.body.timestamp;
