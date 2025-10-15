@@ -114,6 +114,7 @@
   },
   "devDependencies": {
     "chai": "^5.1.1",
+    "fount-js": "^0.2.2",
     "mocha": "^10.4.0",
     "sessionless-node": "^0.10.1",
     "superagent": "^9.0.2"

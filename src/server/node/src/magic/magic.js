@@ -78,6 +78,137 @@ const MAGIC = {
       body: JSON.stringify(spell),
       headers: {'Content-Type': 'application/json'}
     });
+  },
+
+  // 🪄 MAGIC-ROUTED ENDPOINTS (No auth needed - resolver authorizes)
+
+  continuebeeUserCreate: async (spell) => {
+    try {
+      const { pubKey, hash } = spell.components;
+
+      if (!pubKey || !hash) {
+        return {
+          success: false,
+          error: 'Missing required fields: pubKey, hash'
+        };
+      }
+
+      // Check if user already exists
+      try {
+        const userCheck = await db.getUserByPublicKey(pubKey);
+        if (userCheck && userCheck.hash === hash) {
+          return {
+            success: true,
+            user: userCheck
+          };
+        }
+      } catch (err) {
+        // User doesn't exist, continue with creation
+      }
+
+      const userToPut = {
+        pubKey,
+        hash
+      };
+
+      const foundUser = await user.putUser(userToPut);
+
+      return {
+        success: true,
+        user: foundUser
+      };
+    } catch (err) {
+      console.error('continuebeeUserCreate error:', err);
+      return {
+        success: false,
+        error: err.message
+      };
+    }
+  },
+
+  continuebeeUserUpdateHash: async (spell) => {
+    try {
+      const { userUUID, hash, newHash } = spell.components;
+
+      if (!userUUID || !hash || !newHash) {
+        return {
+          success: false,
+          error: 'Missing required fields: userUUID, hash, newHash'
+        };
+      }
+
+      const foundUser = await user.getUser(userUUID);
+
+      if (!foundUser) {
+        return {
+          success: false,
+          error: 'User not found'
+        };
+      }
+
+      // Verify current hash matches
+      if (foundUser.hash !== hash) {
+        return {
+          success: false,
+          error: 'Current hash does not match'
+        };
+      }
+
+      const updatedUser = await user.updateHash(foundUser, hash, newHash);
+
+      return {
+        success: true,
+        user: updatedUser
+      };
+    } catch (err) {
+      console.error('continuebeeUserUpdateHash error:', err);
+      return {
+        success: false,
+        error: err.message
+      };
+    }
+  },
+
+  continuebeeUserDelete: async (spell) => {
+    try {
+      const { userUUID, hash } = spell.components;
+
+      if (!userUUID || !hash) {
+        return {
+          success: false,
+          error: 'Missing required fields: userUUID, hash'
+        };
+      }
+
+      const foundUser = await user.getUser(userUUID);
+
+      if (!foundUser) {
+        return {
+          success: false,
+          error: 'User not found'
+        };
+      }
+
+      // Verify hash matches
+      if (foundUser.hash !== hash) {
+        return {
+          success: false,
+          error: 'Hash does not match'
+        };
+      }
+
+      const success = await user.deleteUser(userUUID);
+
+      return {
+        success: success
+      };
+    } catch (err) {
+      console.error('continuebeeUserDelete error:', err);
+      return {
+        success: false,
+        error: err.message
+      };
+    }
   }
 };
 
