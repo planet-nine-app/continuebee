@@ -3,3 +3,4 @@ data
 target
 .env
 .vscode
+package-lock.json

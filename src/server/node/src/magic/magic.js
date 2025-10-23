@@ -59,11 +59,11 @@ const MAGIC = {
   gatewayForSpell: async (spellName) => {
     const continuebee = await db.getUser('continuebee');
     const gateway = {
-      timestamp = new Date().getTime() + '',
-      uuid: continuebee.fountUUID, 
+      timestamp: new Date().getTime() + '',
+      uuid: continuebee.fountUUID,
       minimumCost: 20,
       ordinal: continuebee.ordinal
-    };      
+    };
 
     const message = gateway.timestamp + gateway.uuid + gateway.minimumCost + gateway.ordinal;
 
@@ -99,7 +99,11 @@ const MAGIC = {
         if (userCheck && userCheck.hash === hash) {
           return {
             success: true,
-            user: userCheck
+            user: {
+              ...userCheck,
+              uuid: userCheck.userUUID,
+              userUUID: undefined
+            }
           };
         }
       } catch (err) {
@@ -113,9 +117,14 @@ const MAGIC = {
 
       const foundUser = await user.putUser(userToPut);
 
+      // Normalize response: rename userUUID to uuid for consistency
       return {
         success: true,
-        user: foundUser
+        user: {
+          ...foundUser,
+          uuid: foundUser.userUUID,
+          userUUID: undefined
+        }
       };
     } catch (err) {
       console.error('continuebeeUserCreate error:', err);
@@ -156,9 +165,14 @@ const MAGIC = {
 
       const updatedUser = await user.updateHash(foundUser, hash, newHash);
 
+      // Normalize response: rename userUUID to uuid for consistency
       return {
         success: true,
-        user: updatedUser
+        user: {
+          ...updatedUser,
+          uuid: updatedUser.userUUID,
+          userUUID: undefined
+        }
       };
     } catch (err) {
       console.error('continuebeeUserUpdateHash error:', err);

@@ -7,6 +7,7 @@ import fount from 'fount-js';
 import bdo from 'bdo-js';
 import sessionless from 'sessionless-node';
 import db from './src/persistence/db.js';
+import MAGIC from './src/magic/magic.js';
 
 const app = express();
 app.use(cors());
@@ -180,6 +181,28 @@ console.log('success: ', success);
 console.warn(err);
     res.status(404);
     res.send({ error: 'Not Found' });
+  }
+});
+
+// 🪄 MAGIC SPELL ENDPOINT
+// This endpoint receives spells forwarded from Fount's resolver
+app.post('/magic/spell/:spellName', async (req, res) => {
+  try {
+    const spellName = req.params.spellName;
+    console.log(`🪄 Received ${spellName} spell`);
+
+    if (!MAGIC[spellName]) {
+      res.status(404);
+      return res.send({ error: 'spell not found' });
+    }
+
+    const result = await MAGIC[spellName](req.body);
+    res.status(result.success ? 200 : 900);
+    res.send(result);
+  } catch (err) {
+    console.error('Magic spell error:', err);
+    res.status(404);
+    res.send({ success: false, error: err.message });
   }
 });
 
