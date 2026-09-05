@@ -183,6 +183,10 @@ console.warn(err);
   }
 });
 
-app.listen(2999);
+if (import.meta.url === `file://${process.argv[1]}`) {
+  app.listen(2999);
 
-console.log('continue bee time!');
+  console.log('continue bee time!');
+}
+
+export default app;
